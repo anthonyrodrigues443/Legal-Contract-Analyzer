@@ -1,0 +1,55 @@
+project:
+  name: Legal Contract Analyzer
+  domain: NLP-1
+  primary_metric: f1_macro
+  metric_rationale: "CUAD leaderboard uses F1. Macro-F1 penalizes poor performance on rare clause types equally — relevant since some clauses (e.g., change of control) appear in <5% of contracts."
+
+dataset:
+  name: CUAD (Contract Understanding Atticus Dataset)
+  source: theatticusproject/cuad
+  huggingface_id: theatticusproject/cuad
+  n_contracts: 510
+  n_clause_types: 41
+  task: multi-label clause classification
+
+paths:
+  data_raw: data/raw/
+  data_processed: data/processed/
+  models: models/
+  results: results/
+  reports: reports/
+  notebooks: notebooks/
+
+models:
+  baseline:
+    tfidf_max_features: 50000
+    tfidf_ngram_range: [1, 2]
+    logistic_regression:
+      C: 1.0
+      max_iter: 1000
+      class_weight: balanced
+
+training:
+  test_size: 0.2
+  random_state: 42
+  cv_folds: 5
+
+clause_categories:
+  high_risk:
+    - Uncapped Liability
+    - IP Ownership Assignment
+    - Change of Control
+    - Non-Compete
+    - Liquidated Damages
+  medium_risk:
+    - Indemnification
+    - Limitation of Liability
+    - Termination for Convenience
+    - Exclusivity
+    - No-Solicit of Employees
+  standard:
+    - Governing Law
+    - Dispute Resolution
+    - Anti-Assignment
+    - Insurance
+    - Warranty Duration
