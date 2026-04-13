@@ -1,0 +1,55 @@
+{
+  "phase": 1,
+  "date": "2026-04-13",
+  "dataset": "UNFAIR-ToS (LexGLUE)",
+  "primary_metric": "micro-F1",
+  "train_size": 5532,
+  "val_size": 2275,
+  "test_size": 1607,
+  "results": [
+    {
+      "model": "TF-IDF + LogReg",
+      "micro_f1": 0.6555,
+      "macro_f1": 0.6729,
+      "precision": 0.5358,
+      "recall": 0.8441,
+      "features": 10000
+    },
+    {
+      "model": "TF-IDF + Domain + LogReg",
+      "micro_f1": 0.5379,
+      "macro_f1": 0.5166,
+      "precision": 0.4049,
+      "recall": 0.8011,
+      "features": 10027
+    },
+    {
+      "model": "Rule-Based (domain)",
+      "micro_f1": 0.2558,
+      "macro_f1": 0.3091,
+      "precision": 0.1684,
+      "recall": 0.5323,
+      "features": 27
+    },
+    {
+      "model": "Domain Only + LogReg",
+      "micro_f1": 0.2146,
+      "macro_f1": 0.2302,
+      "precision": 0.1237,
+      "recall": 0.8118,
+      "features": 27
+    },
+    {
+      "model": "Majority Class (all fair)",
+      "micro_f1": 0.0,
+      "macro_f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "features": 0
+    }
+  ],
+  "published_benchmarks": {
+    "BERT-base": 0.83,
+    "Legal-BERT": 0.85
+  }
+}

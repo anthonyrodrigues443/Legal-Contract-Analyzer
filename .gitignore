@@ -1,0 +1,14 @@
+data/raw/
+data/processed/
+models/*.pkl
+models/*.pt
+models/*.bin
+__pycache__/
+.venv/
+*.pyc
+.DS_Store
+*.egg-info/
+dist/
+build/
+.ipynb_checkpoints/
+wandb/
