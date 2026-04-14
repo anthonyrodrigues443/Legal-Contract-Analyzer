@@ -20,17 +20,18 @@ Terms of Service agreements contain clauses that may be unfair to consumers unde
 
 ## Current Status
 
-- **Phase completed:** Phase 1 — Domain Research + Dataset + EDA + Baseline (2026-04-13)
-- **Best model:** TF-IDF + Logistic Regression — Micro-F1: **0.6555**
-- **Gap to published BERT-base:** -0.175 micro-F1
+- **Phase completed:** Phase 2 — Multi-Model Experiment (2026-04-14)
+- **Best model (overall):** TF-IDF(20K) + LogReg — Macro-F1: **0.6146** (CUAD)
+- **Best model (high-risk clauses):** XGBoost + TF-IDF(20K) — High-Risk Macro-F1: **0.576**
+- **Gap to published RoBERTa-large:** -0.035 macro-F1
 
 ## Key Findings
 
-1. **TF-IDF + LogReg achieves 0.656 micro-F1** — strong non-transformer baseline, 0.175 below published BERT-base (0.83).
-2. **Domain features HURT when combined with TF-IDF** (delta: -0.118). 27 binary regex features add noise because TF-IDF bigrams already capture the same legal phrases more precisely.
-3. **Severe class imbalance** (88.6% fair) is the primary challenge — all models struggle with precision.
-4. **Domain features alone have high recall (81%) but terrible precision (12%)** — wide net, too many false alarms.
-5. **Distinguishing actor matters:** "the company may terminate" (unfair) vs "you may terminate" (fair) requires syntactic understanding that TF-IDF lacks — the gap to transformers.
+1. **TF-IDF dominates fine-tuned transformers by +0.225 macro-F1 on CUAD.** Fine-tuned BERT (0.350) is the worst model tested — 512-token truncation sees only 5% of each contract (7,861-word average).
+2. **The bottleneck is document coverage, not model sophistication.** TF-IDF processes 100% of each contract; BERT truncates at 512 tokens. The published RoBERTa result (0.650) uses sliding windows — truncation explains the gap entirely.
+3. **XGBoost beats LogReg on high-risk clauses by +0.059 macro-F1** even though LogReg wins overall (0.615 vs 0.605). XGBoost wins Liquidated Damages by +0.214 — overall F1 is the wrong metric for legal review.
+4. **Vocabulary Goldilocks zone at 20K bigrams.** 100K features underperforms 5K features (0.565 vs 0.594) — past 20K, each new dimension is a coefficient to estimate from N=408 imbalanced contracts.
+5. **Domain features HURT TF-IDF by -0.118 micro-F1 on UNFAIR-ToS.** Binary regex flags are redundant noise when the base model already captures the same phrases via bigrams with greater precision.
 
 ## Models Compared
 
@@ -44,7 +45,7 @@ Terms of Service agreements contain clauses that may be unfair to consumers unde
 | *BERT-base (published)* | *0.8300* | — | — | — |
 | *Legal-BERT (published)* | *0.8500* | — | — | — |
 
-**Total experiments:** 5
+**Total experiments:** 20
 
 ## Iteration Summary
 
@@ -69,6 +70,32 @@ Terms of Service agreements contain clauses that may be unfair to consumers unde
 **Surprise:** Domain features HURT by -0.118 micro-F1. The conventional wisdom that "domain knowledge always helps" breaks down when the base model already captures the same signals with greater precision.<br><br>
 **Research:** Chalkidis et al. (2022, LexGLUE/ACL) — BERT-base achieves 0.83 micro-F1, Legal-BERT 0.85; Lippi et al. (2019, CLAUDETTE) — pioneered rule-based detection, establishing the ceiling of regex-based approaches at ~0.25 F1.<br><br>
 **Best Model So Far:** TF-IDF + LogReg — Micro-F1: 0.6555
+
+</td>
+</tr>
+</table>
+
+### Phase 2: Multi-Model Experiment — 2026-04-14
+
+<table>
+<tr>
+<td valign="top" width="38%">
+
+**Model Run 1:** Tested 6 models across classical ML, dense embeddings, and fine-tuned transformers on CUAD. Best: TF-IDF+LightGBM at Macro-F1 = 0.575. Fine-tuned BERT-base scored 0.350 — the worst of all 7 models — because 512-token truncation sees only 5% of each 7,861-word contract.<br><br>
+**Model Run 2:** Vocabulary ablation (5K–100K features) revealed a Goldilocks zone at 20K bigrams (Macro-F1 = 0.603); 100K features HURTS to 0.565. TF-IDF(20K)+LR achieves 0.6146 overall, but XGBoost(20K) wins on high-risk clause detection — Macro-F1 0.576 vs LR's 0.517, including +0.214 on Liquidated Damages.
+
+</td>
+<td align="center" width="24%">
+
+<img src="results/phase2_mark_model_comparison.png" width="220">
+
+</td>
+<td valign="top" width="38%">
+
+**Combined Insight:** Classical ML beats transformers by +0.225 macro-F1 because BERT truncation at 512 tokens is fatal on long contracts. The "best overall model" (LogReg, 0.615) and the "best legal model" (XGBoost, high-risk Macro-F1 0.576) diverge — overall F1 is the wrong optimization target for legal clause review.<br><br>
+**Surprise:** Fine-tuning HURTS: frozen Legal-BERT CLS + LogReg (0.514) beats fine-tuned Legal-BERT (0.410). With 408 training contracts, fine-tuning destroys pre-trained representations faster than it learns task-specific patterns. Also: 100K vocabulary features underperform 5K (0.565 vs 0.594).<br><br>
+**Research:** Chalkidis et al. (2020, LEGAL-BERT, EMNLP) — domain pre-training adds +5–10%, confirmed by +0.060 gap, but cannot compensate for 5% document coverage; Hendrycks et al. (2021, CUAD) — published RoBERTa uses sliding windows, explaining the ~0.650 vs our 0.575 gap.<br><br>
+**Best Model So Far:** TF-IDF(20K) + LogReg — Macro-F1: 0.6146 (CUAD) / XGBoost for high-risk clauses
 
 </td>
 </tr>
