@@ -1,0 +1,78 @@
+{
+  "phase": "2_mark",
+  "date": "2026-04-14",
+  "dataset": "CUAD v1",
+  "primary_metric": "macro_f1",
+  "n_train": 408,
+  "n_test": 102,
+  "n_labels": 39,
+  "experiments": {
+    "vocab_ablation": [
+      {
+        "n_features": 5000,
+        "macro_f1": 0.5943
+      },
+      {
+        "n_features": 10000,
+        "macro_f1": 0.5992
+      },
+      {
+        "n_features": 20000,
+        "macro_f1": 0.6026
+      },
+      {
+        "n_features": 50000,
+        "macro_f1": 0.5836
+      },
+      {
+        "n_features": 100000,
+        "macro_f1": 0.5651
+      }
+    ],
+    "complement_nb": {
+      "macro_f1": 0.4677,
+      "macro_precision": 0.394,
+      "macro_recall": 0.898,
+      "macro_auc": 0.759
+    },
+    "multinomial_nb": {
+      "macro_f1": 0.5493
+    },
+    "xgboost_20k": {
+      "model": "XGBoost+TF-IDF(20K)",
+      "macro_f1": 0.6052,
+      "micro_f1": 0.7755,
+      "macro_precision": 0.7367,
+      "macro_recall": 0.5684,
+      "macro_auc": 0.8607,
+      "t": 268.9
+    },
+    "lsa_rf": {
+      "model": "LSA-256+RandomForest",
+      "macro_f1": 0.5305,
+      "micro_f1": 0.7352,
+      "macro_precision": 0.5033,
+      "macro_recall": 0.6371,
+      "macro_auc": 0.7975,
+      "t": 10.3
+    },
+    "lr_20k": {
+      "model": "TF-IDF(20K)+LR",
+      "macro_f1": 0.6146,
+      "micro_f1": 0.7777,
+      "macro_precision": 0.5892,
+      "macro_recall": 0.6929,
+      "macro_auc": 0.8335,
+      "t": 4.7
+    }
+  },
+  "champion": "TF-IDF(20K)+LR",
+  "champion_f1": 0.6146,
+  "key_finding": "Goldilocks vocabulary: 20K bigrams optimal on CUAD. 100K features HURTS by -0.037. Complement NB fails despite imbalance design.",
+  "high_risk_f1": {
+    "LR_20K": 0.5170888690233928,
+    "XGBoost": 0.5756982307673552,
+    "LSA_RF": 0.4426409393514657
+  },
+  "anthony_best": 0.575
+}
