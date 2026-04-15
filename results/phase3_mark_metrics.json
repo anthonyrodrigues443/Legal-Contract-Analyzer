@@ -1,0 +1,152 @@
+{
+  "phase": "3_mark",
+  "date": "2026-04-15",
+  "dataset": "CUAD v1",
+  "primary_metric": "macro_f1",
+  "n_train": 408,
+  "n_test": 102,
+  "n_labels": 39,
+  "high_risk_clauses_measured": [
+    "Uncapped Liability",
+    "Change Of Control",
+    "Non-Compete",
+    "Liquidated Damages"
+  ],
+  "phase2_baselines": {
+    "tfidf_20k_lr": {
+      "macro_f1": 0.6146,
+      "hr_f1": 0.517
+    },
+    "xgboost_tfidf": {
+      "macro_f1": 0.6052,
+      "hr_f1": 0.576
+    }
+  },
+  "experiments": {
+    "3.1a_domain_only_lr": {
+      "model": "Domain-Only LR (40 features)",
+      "macro_f1": 0.4923,
+      "micro_f1": 0.6498,
+      "macro_precision": 0.4502,
+      "macro_recall": 0.5855,
+      "macro_auc": 0.6855,
+      "hr_f1": 0.4688,
+      "train_time_s": 0.8
+    },
+    "3.1b_tfidf_domain_lr": {
+      "model": "TF-IDF(20K)+Domain --> LR",
+      "macro_f1": 0.5161,
+      "micro_f1": 0.6902,
+      "macro_precision": 0.4814,
+      "macro_recall": 0.5772,
+      "macro_auc": 0.7158,
+      "hr_f1": 0.4721,
+      "train_time_s": 15.1
+    },
+    "3.1c_tfidf_domain_xgb": {
+      "model": "TF-IDF(20K)+Domain --> XGBoost",
+      "macro_f1": 0.6102,
+      "micro_f1": 0.7777,
+      "macro_precision": 0.7042,
+      "macro_recall": 0.5776,
+      "macro_auc": 0.8656,
+      "hr_f1": 0.4954,
+      "train_time_s": 187.5
+    },
+    "3.2_chi2_k_ablation": {
+      "100": {
+        "model": "Chi2-SelectK(k=100)+LR",
+        "macro_f1": 0.5824,
+        "micro_f1": 0.7787,
+        "macro_precision": 0.6137,
+        "macro_recall": 0.5755,
+        "macro_auc": 0.8086,
+        "hr_f1": 0.3698,
+        "train_time_s": 0.9
+      },
+      "300": {
+        "model": "Chi2-SelectK(k=300)+LR",
+        "macro_f1": 0.5964,
+        "micro_f1": 0.7806,
+        "macro_precision": 0.6169,
+        "macro_recall": 0.598,
+        "macro_auc": 0.8253,
+        "hr_f1": 0.3674,
+        "train_time_s": 1.0
+      },
+      "500": {
+        "model": "Chi2-SelectK(k=500)+LR",
+        "macro_f1": 0.5982,
+        "micro_f1": 0.7801,
+        "macro_precision": 0.6245,
+        "macro_recall": 0.6007,
+        "macro_auc": 0.8341,
+        "hr_f1": 0.443,
+        "train_time_s": 1.1
+      },
+      "1000": {
+        "model": "Chi2-SelectK(k=1000)+LR",
+        "macro_f1": 0.6124,
+        "micro_f1": 0.7845,
+        "macro_precision": 0.6202,
+        "macro_recall": 0.6402,
+        "macro_auc": 0.8378,
+        "hr_f1": 0.4512,
+        "train_time_s": 1.0
+      }
+    },
+    "3.2_best_k": 1000,
+    "3.3_standard_tfidf10k": {
+      "model": "Standard TF-IDF(10K)+LR",
+      "macro_f1": 0.6183,
+      "micro_f1": 0.7747,
+      "macro_precision": 0.5679,
+      "macro_recall": 0.7132,
+      "macro_auc": 0.8324,
+      "hr_f1": 0.4742,
+      "train_time_s": 3.5
+    },
+    "3.3_sliding_window": {
+      "model": "SlidingWindow-MaxPool(10K)+LR",
+      "macro_f1": 0.6151,
+      "micro_f1": 0.7932,
+      "macro_precision": 0.6535,
+      "macro_recall": 0.622,
+      "macro_auc": 0.8376,
+      "hr_f1": 0.5102,
+      "train_time_s": 3.5
+    },
+    "3.4_char_ngrams": {
+      "model": "Char-NGram(4-6, 20K)+LR",
+      "macro_f1": 0.5971,
+      "micro_f1": 0.7543,
+      "macro_precision": 0.5164,
+      "macro_recall": 0.7442,
+      "macro_auc": 0.8285,
+      "hr_f1": 0.4738,
+      "train_time_s": 7.2
+    },
+    "3.4b_word_char_combined": {
+      "model": "Word(20K)+Char(20K) --> LR",
+      "macro_f1": 0.6187,
+      "micro_f1": 0.7829,
+      "macro_precision": 0.5957,
+      "macro_recall": 0.6942,
+      "macro_auc": 0.8406,
+      "hr_f1": 0.485,
+      "train_time_s": 12.6
+    }
+  },
+  "phase3_champion": "Word(20K)+Char(20K) --> LR",
+  "phase3_champion_macro_f1": 0.6187,
+  "phase3_hr_champion": "SlidingWindow-MaxPool(10K)+LR",
+  "phase3_hr_champion_f1": 0.5102,
+  "bottleneck_verdict": "MODEL (features near ceiling)",
+  "key_findings": [
+    "Domain features alone get 0.492 macro-F1 -- far below TF-IDF's 0.615. Legal signal is too distributed for 40 hand-crafted features to capture alone.",
+    "TF-IDF+Domain hybrid vs LR: ?=-0.0985. Domain features are redundant to TF-IDF on CUAD.",
+    "Chi2 per-clause selection (best K=1000): 0.6124. Does not beat global TF-IDF+LR.",
+    "Sliding window max-pooling: 0.6151 vs Standard TF-IDF(10K): 0.6183. ?=-0.0032.",
+    "Character n-grams (4-6): 0.5971. Word+Char combined: 0.6187. ? vs word-only: +0.0041."
+  ]
+}
