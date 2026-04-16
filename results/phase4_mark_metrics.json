@@ -1,0 +1,141 @@
+{
+  "phase": "4_mark",
+  "date": "2026-04-16",
+  "dataset": "CUAD v1",
+  "primary_metric": "macro_f1",
+  "n_train": 408,
+  "n_test": 102,
+  "n_labels": 39,
+  "high_risk_clauses": [
+    "Uncapped Liability",
+    "Change Of Control",
+    "Non-Compete",
+    "Liquidated Damages"
+  ],
+  "baselines": {
+    "p2_lr_stored": {
+      "macro_f1": 0.6146,
+      "hr_f1": 0.517
+    },
+    "p2_xgb_stored": {
+      "macro_f1": 0.6052,
+      "hr_f1": 0.576
+    },
+    "p3_combo_c10": {
+      "macro_f1": 0.6187,
+      "hr_f1": 0.485
+    }
+  },
+  "exp_4_1_lr_c_sweep": {
+    "0.05": {
+      "macro_f1": 0.57,
+      "hr_f1": 0.4416,
+      "train_s": 38.9
+    },
+    "0.1": {
+      "macro_f1": 0.575,
+      "hr_f1": 0.448,
+      "train_s": 29.8
+    },
+    "0.3": {
+      "macro_f1": 0.6023,
+      "hr_f1": 0.4718,
+      "train_s": 42.6
+    },
+    "0.5": {
+      "macro_f1": 0.6142,
+      "hr_f1": 0.4846,
+      "train_s": 51.6
+    },
+    "1.0": {
+      "macro_f1": 0.6187,
+      "hr_f1": 0.485,
+      "train_s": 64.2
+    },
+    "2.0": {
+      "macro_f1": 0.6225,
+      "hr_f1": 0.4885,
+      "train_s": 78.7
+    },
+    "5.0": {
+      "macro_f1": 0.6203,
+      "hr_f1": 0.4882,
+      "train_s": 85.0
+    },
+    "10.0": {
+      "macro_f1": 0.6201,
+      "hr_f1": 0.5102,
+      "train_s": 79.7
+    }
+  },
+  "exp_4_1_best_C_macro": 2.0,
+  "exp_4_1_best_C_hr": 10.0,
+  "exp_4_1_tuned_lr": {
+    "macro_f1": 0.6225,
+    "hr_f1": 0.4885
+  },
+  "exp_4_2_lightgbm": {
+    "default": {
+      "macro_f1": 0.6656,
+      "hr_f1": 0.4989,
+      "train_s": 344.9
+    },
+    "tuned": {
+      "macro_f1": 0.6557,
+      "hr_f1": 0.4639,
+      "train_s": 203.3
+    },
+    "optuna_proxy_best_hr": 0.5341,
+    "optuna_time_s": 219.0,
+    "n_trials": 20,
+    "best_params": {
+      "n_estimators": 99,
+      "max_depth": 3,
+      "learning_rate": 0.20398171498694878,
+      "subsample": 0.8566880772987617,
+      "colsample_bytree": 0.3882466104890758,
+      "min_child_samples": 30,
+      "reg_lambda": 1.47761303030584,
+      "pos_weight_mult": 2.3554808803080567
+    },
+    "delta_macro_vs_default": -0.0099,
+    "delta_hr_vs_default": -0.035,
+    "lgbm_tuned_vs_lr_tuned": 0.0332
+  },
+  "exp_4_3_calibration": {
+    "youden": {
+      "macro_f1": 0.6591,
+      "hr_f1": 0.5016
+    },
+    "legal_review": {
+      "macro_f1": 0.6574,
+      "hr_f1": 0.4843
+    },
+    "global_best": {
+      "thr": 0.45,
+      "macro_f1": 0.6289953452932605,
+      "hr_f1": 0.49020108929492473,
+      "recall": 0.7290844020580834,
+      "precision": 0.5767948002050408
+    },
+    "d_legal_review_hr": -0.004,
+    "d_legal_review_macro": 0.0349
+  },
+  "exp_4_4_error_analysis": {
+    "corr_train_size_f1": 0.742,
+    "corr_prevalence_f1": 0.742,
+    "corr_word_count_errors": 0.512,
+    "avg_errors_long": 10.45,
+    "avg_errors_short": 5.78,
+    "zero_error_contracts": 2,
+    "hr_miss_contracts": 9,
+    "n_hard_f1_lt040": 6,
+    "n_easy_f1_gte070": 19,
+    "avg_train_hard": 33.3,
+    "avg_train_easy": 205.2
+  },
+  "phase4_macro_champion": "P4 LightGBM default (20K)",
+  "phase4_macro_f1": 0.6656,
+  "phase4_hr_champion": "P4 LR + Youden threshold",
+  "phase4_hr_f1": 0.5016
+}
