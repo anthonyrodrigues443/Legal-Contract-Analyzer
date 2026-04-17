@@ -1,0 +1,261 @@
+{
+  "phase": "5_mark",
+  "date": "2026-04-17",
+  "primary_metric": "macro_f1",
+  "dataset": "CUAD v1",
+  "llm_model": "claude-sonnet-4-6",
+  "ablation": {
+    "champion": {
+      "name": "LightGBM default (20K word TF-IDF)",
+      "macro_f1": 0.6396170238513149,
+      "hr_f1": 0.498922902494331,
+      "delta": 0.0
+    },
+    "char_only": {
+      "name": "Char(4-6)gram only",
+      "macro_f1": 0.5679556019753821,
+      "hr_f1": 0.44872113750362724,
+      "delta": -0.07166142187593283
+    },
+    "unigrams": {
+      "name": "Unigrams only (1,1)",
+      "macro_f1": 0.5983481899520234,
+      "hr_f1": 0.45276022123620246,
+      "delta": -0.04126883389929148
+    },
+    "no_weight": {
+      "name": "No class reweighting",
+      "macro_f1": 0.5595421531441231,
+      "hr_f1": 0.47012763291833054,
+      "delta": -0.08007487070719177
+    },
+    "5k_feat": {
+      "name": "5K features only",
+      "macro_f1": 0.5743425229130045,
+      "hr_f1": 0.470979609929078,
+      "delta": -0.06527450093831044
+    },
+    "shallow": {
+      "name": "Shallow trees (depth=2)",
+      "macro_f1": 0.6369524129393924,
+      "hr_f1": 0.5231420870234886,
+      "delta": -0.0026646109119224937
+    }
+  },
+  "ensemble": {
+    "lr_youden_macro_f1": 0.6150866695266245,
+    "lr_youden_hr_f1": 0.4457613867464794,
+    "best_blend_alpha": 0.5,
+    "best_blend_macro_f1": 0.6906756548440373,
+    "best_blend_hr_f1": 0.5818764568764568,
+    "blend_sweep": {
+      "0.3": {
+        "macro_f1": 0.6852298851489304,
+        "hr_f1": 0.501492349800332
+      },
+      "0.4": {
+        "macro_f1": 0.6808785953154247,
+        "hr_f1": 0.4902782421781705
+      },
+      "0.5": {
+        "macro_f1": 0.6906756548440373,
+        "hr_f1": 0.5818764568764568
+      },
+      "0.6": {
+        "macro_f1": 0.6905161910013419,
+        "hr_f1": 0.5806795317358697
+      },
+      "0.7": {
+        "macro_f1": 0.6887395264164752,
+        "hr_f1": 0.5648056653491436
+      },
+      "0.8": {
+        "macro_f1": 0.6888203990633829,
+        "hr_f1": 0.5992965367965368
+      },
+      "0.9": {
+        "macro_f1": 0.689241897417085,
+        "hr_f1": 0.5716169613429888
+      }
+    }
+  },
+  "llm_comparison": {
+    "n_contracts": 102,
+    "max_words_per_contract": 3500,
+    "zero_shot": {
+      "hr_macro_f1": 0.0,
+      "per_clause": {
+        "Uncapped Liability": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0
+        },
+        "Change Of Control": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0
+        },
+        "Non-Compete": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0
+        },
+        "Liquidated Damages": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0
+        }
+      },
+      "avg_latency_s": NaN,
+      "total_input_tokens": 0,
+      "total_output_tokens": 0,
+      "estimated_cost_usd": 0.0
+    },
+    "few_shot": {
+      "hr_macro_f1": 0.0,
+      "per_clause": {
+        "Uncapped Liability": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0
+        },
+        "Change Of Control": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0
+        },
+        "Non-Compete": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0
+        },
+        "Liquidated Damages": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0
+        }
+      },
+      "avg_latency_s": NaN
+    },
+    "lightgbm": {
+      "hr_macro_f1": 0.498922902494331,
+      "macro_f1": 0.6396170238513149,
+      "per_clause": {
+        "Uncapped Liability": {
+          "f1": 0.5306122448979592,
+          "precision": 0.52,
+          "recall": 0.5416666666666666
+        },
+        "Change Of Control": {
+          "f1": 0.4888888888888889,
+          "precision": 0.4782608695652174,
+          "recall": 0.5
+        },
+        "Non-Compete": {
+          "f1": 0.5,
+          "precision": 0.5714285714285714,
+          "recall": 0.4444444444444444
+        },
+        "Liquidated Damages": {
+          "f1": 0.47619047619047616,
+          "precision": 0.7142857142857143,
+          "recall": 0.35714285714285715
+        }
+      },
+      "avg_latency_s": 0.002
+    },
+    "lgbm_advantage_vs_zero": 0.4989,
+    "lgbm_advantage_vs_few": 0.4989
+  },
+  "phase5_champion": "LightGBM default (20K word TF-IDF)",
+  "phase5_macro_f1": 0.6396170238513149,
+  "phase5_hr_f1": 0.498922902494331,
+  "llm_comparison_cli": {
+    "date": "2026-04-17",
+    "model": "claude-sonnet-4-6",
+    "n_contracts": 30,
+    "lightgbm": {
+      "hr_macro_f1": 0.4988095238095238,
+      "per_clause": {
+        "Uncapped Liability": {
+          "f1": 0.6666666666666666,
+          "precision": 0.6666666666666666,
+          "recall": 0.6666666666666666
+        },
+        "Change Of Control": {
+          "f1": 0.42857142857142855,
+          "precision": 0.5,
+          "recall": 0.375
+        },
+        "Non-Compete": {
+          "f1": 0.5,
+          "precision": 1.0,
+          "recall": 0.3333333333333333
+        },
+        "Liquidated Damages": {
+          "f1": 0.4,
+          "precision": 0.5,
+          "recall": 0.3333333333333333
+        }
+      },
+      "latency_ms": 2.0
+    },
+    "zero_shot": {
+      "hr_macro_f1": 0.16233766233766234,
+      "per_clause": {
+        "Uncapped Liability": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0
+        },
+        "Change Of Control": {
+          "f1": 0.36363636363636365,
+          "precision": 0.6666666666666666,
+          "recall": 0.25
+        },
+        "Non-Compete": {
+          "f1": 0.2857142857142857,
+          "precision": 1.0,
+          "recall": 0.16666666666666666
+        },
+        "Liquidated Damages": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0
+        }
+      },
+      "avg_latency_s": 11.093114932378134,
+      "errors": 0
+    },
+    "few_shot": {
+      "hr_macro_f1": 0.12142857142857143,
+      "per_clause": {
+        "Uncapped Liability": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0
+        },
+        "Change Of Control": {
+          "f1": 0.2,
+          "precision": 0.5,
+          "recall": 0.125
+        },
+        "Non-Compete": {
+          "f1": 0.2857142857142857,
+          "precision": 1.0,
+          "recall": 0.16666666666666666
+        },
+        "Liquidated Damages": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0
+        }
+      },
+      "avg_latency_s": 15.43501047293345,
+      "errors": 0
+    },
+    "lgbm_advantage_vs_zero": 0.3365,
+    "lgbm_advantage_vs_few": 0.3774,
+    "latency_ratio_zero_vs_lgbm": 5547.0
+  }
+}
