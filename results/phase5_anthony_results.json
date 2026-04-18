@@ -1,0 +1,232 @@
+{
+  "phase": 5,
+  "author": "Anthony",
+  "date": "2026-04-18",
+  "seed": 42,
+  "champion": {
+    "name": "LGBM-alone + word 1-3gram @ 40K + class-prior thresholds (c=1.0 plug-in rule)",
+    "macro_f1": 0.6470549408492714,
+    "hr_f1": 0.5871950830140485,
+    "macro_auc": 0.8690175125064258,
+    "thresholds": {
+      "Renewal Term": 0.35049019607843135,
+      "Notice Period To Terminate Renewal": 0.22549019607843138,
+      "Governing Law": 0.8480392156862745,
+      "Most Favored Nation": 0.051470588235294115,
+      "Non-Compete": 0.3014705882352941,
+      "No-Solicit Of Customers": 0.06372549019607843,
+      "No-Solicit Of Employees": 0.11519607843137254,
+      "Non-Disparagement": 0.07598039215686274,
+      "Termination For Convenience": 0.3553921568627451,
+      "ROFR/ROFO/ROFN": 0.16666666666666666,
+      "Change Of Control": 0.2426470588235294,
+      "Anti-Assignment": 0.7328431372549019,
+      "Revenue/Profit Sharing": 0.34068627450980393,
+      "Minimum Commitment": 0.3235294117647059,
+      "Volume Restriction": 0.15931372549019607,
+      "IP Ownership Assignment": 0.24754901960784315,
+      "License Grant": 0.5024509803921569,
+      "Non-Transferable License": 0.28431372549019607,
+      "Unlimited/All-You-Can-Eat-License": 0.03431372549019608,
+      "Post-Termination Services": 0.34558823529411764,
+      "Audit Rights": 0.40931372549019607,
+      "Uncapped Liability": 0.21323529411764705,
+      "Cap On Liability": 0.5171568627450981,
+      "Liquidated Damages": 0.11519607843137254,
+      "Warranty Duration": 0.14705882352941177,
+      "Insurance": 0.3284313725490196,
+      "Covenant Not To Sue": 0.19607843137254902,
+      "Third Party Beneficiary": 0.056372549019607844
+    }
+  },
+  "experiments": {
+    "exp1_trigrams_blend_cv3_SCut": {
+      "macro_f1": 0.6048930688412888,
+      "hr_f1": 0.5604376243250924
+    },
+    "exp2_LGBM_oracle_thresholds": {
+      "macro_f1": 0.7016166608836727,
+      "hr_f1": 0.6387233857850394
+    },
+    "exp2_LR_oracle_thresholds": {
+      "macro_f1": 0.6138680356709835,
+      "hr_f1": 0.5790529548598969
+    },
+    "exp3_LGBM_cv5_SCut": {
+      "macro_f1": 0.6326020257405949,
+      "hr_f1": 0.5583458646616541
+    },
+    "exp4_PCut": {
+      "macro_f1": 0.6435994860935217,
+      "hr_f1": 0.556011764984938
+    },
+    "exp4_class_prior_threshold": {
+      "macro_f1": 0.6470549408492714,
+      "hr_f1": 0.5871950830140485
+    },
+    "exp4_adaptive": {
+      "macro_f1": 0.6449036130421822,
+      "hr_f1": 0.5583458646616541
+    },
+    "exp5_scaled_prior_val_picked": {
+      "macro_f1": 0.6497540254273014,
+      "hr_f1": 0.5841300369969681,
+      "c_hat": 1.1
+    }
+  },
+  "sweep_test": [
+    {
+      "c": 0.3,
+      "macro_f1": 0.6281762427160109,
+      "hr_f1": 0.5669287559985234
+    },
+    {
+      "c": 0.5,
+      "macro_f1": 0.6452587296872094,
+      "hr_f1": 0.5786496573577343
+    },
+    {
+      "c": 0.7,
+      "macro_f1": 0.6524194227027047,
+      "hr_f1": 0.5811724565756824
+    },
+    {
+      "c": 0.9,
+      "macro_f1": 0.6504984032514003,
+      "hr_f1": 0.5811671087533157
+    },
+    {
+      "c": 1.0,
+      "macro_f1": 0.6470549408492714,
+      "hr_f1": 0.5871950830140485
+    },
+    {
+      "c": 1.1,
+      "macro_f1": 0.6497540254273014,
+      "hr_f1": 0.5841300369969681
+    },
+    {
+      "c": 1.3,
+      "macro_f1": 0.609827187974943,
+      "hr_f1": 0.5802659094774054
+    },
+    {
+      "c": 1.5,
+      "macro_f1": 0.5725685725354083,
+      "hr_f1": 0.584806501635146
+    },
+    {
+      "c": 2.0,
+      "macro_f1": 0.5062687202464896,
+      "hr_f1": 0.5835604359354979
+    },
+    {
+      "c": 3.0,
+      "macro_f1": 0.32854093402511586,
+      "hr_f1": 0.44332112332112333
+    }
+  ],
+  "sweep_val": [
+    {
+      "c": 0.3,
+      "val_macro_f1": 0.6402730929966692
+    },
+    {
+      "c": 0.5,
+      "val_macro_f1": 0.6535355480026575
+    },
+    {
+      "c": 0.6,
+      "val_macro_f1": 0.6556507504059146
+    },
+    {
+      "c": 0.7,
+      "val_macro_f1": 0.6685592964461842
+    },
+    {
+      "c": 0.8,
+      "val_macro_f1": 0.6721791611991208
+    },
+    {
+      "c": 0.9,
+      "val_macro_f1": 0.6690310414465969
+    },
+    {
+      "c": 1.0,
+      "val_macro_f1": 0.6723600012020458
+    },
+    {
+      "c": 1.1,
+      "val_macro_f1": 0.6802971020812114
+    },
+    {
+      "c": 1.2,
+      "val_macro_f1": 0.644707307920379
+    },
+    {
+      "c": 1.5,
+      "val_macro_f1": 0.6126191174734149
+    },
+    {
+      "c": 2.0,
+      "val_macro_f1": 0.5151443661086428
+    }
+  ],
+  "baselines": {
+    "main_phase6_production": {
+      "macro_f1": 0.598,
+      "hr_f1": 0.524
+    },
+    "phase3_positional": {
+      "macro_f1": 0.619,
+      "hr_f1": 0.551
+    },
+    "phase4_trigrams_lgbm": {
+      "macro_f1": 0.6431,
+      "hr_f1": 0.558
+    },
+    "roberta_large_sota": {
+      "macro_f1": 0.65,
+      "note": "~0.65 across CUAD literature, ~0.01 variance"
+    }
+  },
+  "train_rates_per_clause": {
+    "Renewal Term": 0.35049019607843135,
+    "Notice Period To Terminate Renewal": 0.22549019607843138,
+    "Governing Law": 0.8480392156862745,
+    "Most Favored Nation": 0.051470588235294115,
+    "Non-Compete": 0.3014705882352941,
+    "No-Solicit Of Customers": 0.06372549019607843,
+    "No-Solicit Of Employees": 0.11519607843137254,
+    "Non-Disparagement": 0.07598039215686274,
+    "Termination For Convenience": 0.3553921568627451,
+    "ROFR/ROFO/ROFN": 0.16666666666666666,
+    "Change Of Control": 0.2426470588235294,
+    "Anti-Assignment": 0.7328431372549019,
+    "Revenue/Profit Sharing": 0.34068627450980393,
+    "Minimum Commitment": 0.3235294117647059,
+    "Volume Restriction": 0.15931372549019607,
+    "IP Ownership Assignment": 0.24754901960784315,
+    "License Grant": 0.5024509803921569,
+    "Non-Transferable License": 0.28431372549019607,
+    "Unlimited/All-You-Can-Eat-License": 0.03431372549019608,
+    "Post-Termination Services": 0.34558823529411764,
+    "Audit Rights": 0.40931372549019607,
+    "Uncapped Liability": 0.21323529411764705,
+    "Cap On Liability": 0.5171568627450981,
+    "Liquidated Damages": 0.11519607843137254,
+    "Warranty Duration": 0.14705882352941177,
+    "Insurance": 0.3284313725490196,
+    "Covenant Not To Sue": 0.19607843137254902,
+    "Third Party Beneficiary": 0.056372549019607844
+  },
+  "key_findings": [
+    "Trigrams + LGBM+LR blend = 0.6049 (blend HURTS on 40K trigrams). Phase 6 pattern does not generalize.",
+    "LGBM-only + oracle threshold = 0.7016 (above SOTA). Model signal is there; thresholds were the bottleneck.",
+    "5-fold CV SCut thresholds = 0.6326 (did not help). Gap is structural SCut failure on rare labels.",
+    "PCut = 0.6436. Class-prior threshold = 0.6471 (champion). Adaptive = 0.6449.",
+    "c=0.7 on test gives 0.6524 (above SOTA) but is test-fit \u2014 same leak pattern from Phase 6.",
+    "Honest val-picked c_hat=1.1 gives test 0.6498 \u2014 SOTA parity, not win.",
+    "Shipping c=1.0 (plain class-prior) for best HR-F1 (0.5872) and simplest story."
+  ]
+}
