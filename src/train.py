@@ -1,39 +1,53 @@
 """
 Production training pipeline for Legal Contract Analyzer.
-Trains the Phase 5 all-time best model: 50/50 LGBM+LR blend with Youden calibration.
-Saves artifacts to models/ for inference.
 
-Run:
-  python src/train.py [--data-path data/processed/cuad_classification.parquet]
+Phase 6 rework (post-Phase 5, PR E):
+- Features: word 1-3gram TF-IDF @ 40K features (Phase 4 ablation winner)
+- Model:    LightGBM per-clause (Phase 5 blend ablation showed LR HURTS on 40K)
+- Thresholds: per-clause class prior (train_positive_rate).
+             No CV, no validation split, no test-set touch — the plug-in rule
+             from F1-optimization theory for calibrated classifiers. Phase 5
+             established this matches RoBERTa-large SOTA on macro-F1 and beats
+             every CV-tuned variant on HR-F1 by +0.029.
+
+Why this is simpler AND better than the prior pipeline:
+- No LR saga solver (which failed to converge on 5/28 clauses at 40K features).
+- No blend alpha hyperparameter.
+- No CV threshold learning (SCut overfits on rare labels at n=408; Fan & Lin 2007).
+- Thresholds are the training class priors — human-auditable, no fitting.
+
+Artifacts written (in --out-dir, default models/):
+    vectorizer.joblib          - fitted TfidfVectorizer (40K word 1-3gram)
+    lgbm_models.joblib         - list of per-clause LGBMClassifier (None where no positives)
+    thresholds.json            - per-clause class-prior threshold
+    valid_clauses.json         - clause ordering used by the model
+    training_manifest.json     - metadata: metrics, params, timestamps
 """
+from __future__ import annotations
 
 import argparse
 import json
 import time
-import warnings
+from datetime import datetime
 from pathlib import Path
 
 import joblib
-import numpy as np
-import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import f1_score, precision_recall_curve
 import lightgbm as lgb
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score
 
-warnings.filterwarnings("ignore")
+from src.feature_engineering import (
+    HIGH_RISK_CLAUSES,
+    load_cuad_from_json,
+    make_split,
+)
 
-# Paths
-ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = ROOT / "data" / "processed"
-MODELS_DIR = ROOT / "models"
-RESULTS_DIR = ROOT / "results"
-
-# Phase 5 champion settings (confirmed 0.6907 macro-F1)
-TFIDF_MAX_FEATURES = 20_000
-TFIDF_NGRAM_RANGE = (1, 2)
-LR_C = 1.0
-BLEND_ALPHA = 0.5  # 50% LGBM + 50% LR
+# -----------------------------------------------------------------------------
+# Config — Phase 5 champion
+# -----------------------------------------------------------------------------
+TFIDF_MAX_FEATURES = 40_000
+TFIDF_NGRAM_RANGE = (1, 3)
 
 LGBM_PARAMS = dict(
     n_estimators=50,
@@ -46,166 +60,228 @@ LGBM_PARAMS = dict(
     random_state=42,
 )
 
-HIGH_RISK = ["Uncapped Liability", "Change Of Control", "Non-Compete", "Liquidated Damages"]
 
-
-def load_data(data_path: Path):
-    df = pd.read_parquet(data_path)
-    meta_cols = ["contract_title", "text", "text_length", "word_count"]
-    label_cols = [c for c in df.columns if c not in meta_cols]
-
-    np.random.seed(42)
-    idx = np.random.permutation(len(df))
-    train_df = df.iloc[idx[:408]].reset_index(drop=True)
-    test_df = df.iloc[idx[408:]].reset_index(drop=True)
-
-    valid_clauses = [c for c in label_cols if test_df[c].sum() >= 3]
-    return train_df, test_df, valid_clauses
-
-
-def train_lgbm_ovr(X_tr, y_tr, vec, valid_clauses):
-    Xtr = vec.transform(X_tr)
-    models = {}
-    n_pos = y_tr.sum(axis=0)
-    t0 = time.time()
-    for j, clause in enumerate(valid_clauses):
-        if n_pos[j] < 2:
-            continue
-        pw = max(1.0, (len(y_tr) - n_pos[j]) / n_pos[j])
-        clf = lgb.LGBMClassifier(scale_pos_weight=pw, **LGBM_PARAMS)
-        clf.fit(Xtr, y_tr[:, j])
-        models[clause] = clf
-    print(f"  LGBM OvR trained {len(models)} classifiers in {time.time()-t0:.1f}s")
-    return models
-
-
-def train_lr_ovr(X_tr, y_tr, vec, valid_clauses):
-    Xtr = vec.transform(X_tr)
-    models = {}
-    t0 = time.time()
-    for j, clause in enumerate(valid_clauses):
-        if len(np.unique(y_tr[:, j])) < 2:
-            continue
-        clf = LogisticRegression(
-            C=LR_C, max_iter=500, class_weight="balanced",
-            solver="saga", n_jobs=-1
-        )
-        clf.fit(Xtr, y_tr[:, j])
-        models[clause] = clf
-    print(f"  LR OvR trained {len(models)} classifiers in {time.time()-t0:.1f}s")
-    return models
-
-
-def compute_youden_thresholds(probs_blend, y_test, valid_clauses):
-    thresholds = {}
-    for j, clause in enumerate(valid_clauses):
-        if y_test[:, j].sum() == 0:
-            thresholds[clause] = 0.5
-            continue
-        p, r, thr = precision_recall_curve(y_test[:, j], probs_blend[:, j])
-        thr = np.append(thr, 1.0)
-        youdens = r + p - 1
-        thresholds[clause] = float(thr[np.argmax(youdens)])
-    return thresholds
-
-
-def predict_probs(models_lgbm, models_lr, vec, X, valid_clauses):
-    Xmat = vec.transform(X)
-    probs_lgbm = np.zeros((len(X), len(valid_clauses)))
-    probs_lr = np.zeros((len(X), len(valid_clauses)))
-    for j, clause in enumerate(valid_clauses):
-        if clause in models_lgbm:
-            probs_lgbm[:, j] = models_lgbm[clause].predict_proba(Xmat)[:, 1]
-        if clause in models_lr:
-            probs_lr[:, j] = models_lr[clause].predict_proba(Xmat)[:, 1]
-    return BLEND_ALPHA * probs_lgbm + (1 - BLEND_ALPHA) * probs_lr
-
-
-def evaluate_blend(probs_blend, y_test, thresholds, valid_clauses):
-    preds = np.zeros_like(probs_blend, dtype=int)
-    for j, clause in enumerate(valid_clauses):
-        preds[:, j] = (probs_blend[:, j] >= thresholds.get(clause, 0.5)).astype(int)
-    macro_f1 = float(f1_score(y_test, preds, average="macro", zero_division=0))
-    hr_idxs = [i for i, c in enumerate(valid_clauses) if c in HIGH_RISK]
-    hr_f1 = float(f1_score(y_test[:, hr_idxs], preds[:, hr_idxs],
-                            average="macro", zero_division=0)) if hr_idxs else 0.0
-    return macro_f1, hr_f1, preds
-
-
-def main(data_path: Path):
-    MODELS_DIR.mkdir(exist_ok=True)
-    print("=" * 60)
-    print("Legal Contract Analyzer — Production Training Pipeline")
-    print("Model: 50/50 LGBM+LR Blend with Youden calibration")
-    print(f"Phase 5 best: macro-F1=0.6907, HR-F1=0.582")
-    print("=" * 60)
-
-    print("\n[1/6] Loading data...")
-    train_df, test_df, valid_clauses = load_data(data_path)
-    X_train = train_df["text"].values
-    X_test = test_df["text"].values
-    y_train = train_df[valid_clauses].values.astype(int)
-    y_test = test_df[valid_clauses].values.astype(int)
-    print(f"  Train: {len(X_train)} | Test: {len(X_test)} | Clauses: {len(valid_clauses)}")
-
-    print("\n[2/6] Building TF-IDF vectorizer (20K word bigrams)...")
-    vec = TfidfVectorizer(
+def build_vectorizer() -> TfidfVectorizer:
+    """Phase 5 champion TF-IDF: word 1-3gram @ 40K features."""
+    return TfidfVectorizer(
         analyzer="word",
-        max_features=TFIDF_MAX_FEATURES,
         ngram_range=TFIDF_NGRAM_RANGE,
+        max_features=TFIDF_MAX_FEATURES,
         sublinear_tf=True,
         min_df=2,
         max_df=0.95,
     )
-    vec.fit(X_train)
-    print(f"  Vocabulary size: {len(vec.vocabulary_)}")
 
-    print("\n[3/6] Training LightGBM OvR classifiers...")
-    models_lgbm = train_lgbm_ovr(X_train, y_train, vec, valid_clauses)
 
-    print("\n[4/6] Training LogisticRegression OvR classifiers...")
-    models_lr = train_lr_ovr(X_train, y_train, vec, valid_clauses)
+def train_lgbm_per_clause(X_train, y_train, clauses):
+    """Train one LGBMClassifier per clause with per-clause scale_pos_weight.
 
-    print("\n[5/6] Computing per-clause Youden thresholds on test set...")
-    probs_blend_test = predict_probs(models_lgbm, models_lr, vec, X_test, valid_clauses)
-    thresholds = compute_youden_thresholds(probs_blend_test, y_test, valid_clauses)
+    Returns a list indexed by `clauses`; entry is None for clauses with <2 positives.
+    """
+    models = []
+    n_pos = y_train.sum(axis=0)
+    for j in range(len(clauses)):
+        if len(np.unique(y_train[:, j])) < 2 or n_pos[j] < 2:
+            models.append(None)
+            continue
+        pw = max(1.0, (len(y_train) - n_pos[j]) / n_pos[j])
+        clf = lgb.LGBMClassifier(scale_pos_weight=pw, **LGBM_PARAMS)
+        clf.fit(X_train, y_train[:, j])
+        models.append(clf)
+    return models
 
-    macro_f1, hr_f1, _ = evaluate_blend(probs_blend_test, y_test, thresholds, valid_clauses)
-    print(f"  Test macro-F1={macro_f1:.4f} (target: 0.6907)  HR-F1={hr_f1:.4f} (target: 0.582)")
 
-    print("\n[6/6] Saving artifacts to models/...")
-    bundle = {
-        "vectorizer": vec,
-        "lgbm_models": models_lgbm,
-        "lr_models": models_lr,
+def predict_lgbm(models, X) -> np.ndarray:
+    """Per-clause LGBM probability matrix."""
+    out = np.zeros((X.shape[0], len(models)))
+    for j, m in enumerate(models):
+        if m is not None:
+            out[:, j] = m.predict_proba(X)[:, 1]
+    return out
+
+
+def class_prior_thresholds(y_train, clauses) -> dict:
+    """Phase 5 finding: threshold = training positive rate per clause.
+
+    No CV, no validation, no test-set contact. Theoretically justified as the
+    F1-optimal plug-in rule for calibrated classifiers (Lipton & Elkan 2014),
+    and empirically the best macro-F1 AND HR-F1 we measured in Phase 5.
+    """
+    return {c: float(y_train[:, j].mean()) for j, c in enumerate(clauses)}
+
+
+def evaluate(y_true, probs, thresholds, clauses, hr_clauses):
+    preds = np.zeros_like(y_true, dtype=int)
+    for j, c in enumerate(clauses):
+        preds[:, j] = (probs[:, j] >= thresholds.get(c, 0.5)).astype(int)
+
+    active = y_true.sum(axis=0) > 0
+
+    per_clause = {}
+    for j, c in enumerate(clauses):
+        if y_true[:, j].sum() == 0:
+            continue
+        per_clause[c] = {
+            "f1": float(f1_score(y_true[:, j], preds[:, j], zero_division=0)),
+            "precision": float(precision_score(y_true[:, j], preds[:, j], zero_division=0)),
+            "recall": float(recall_score(y_true[:, j], preds[:, j], zero_division=0)),
+            "n_positive": int(y_true[:, j].sum()),
+            "threshold": float(thresholds.get(c, 0.5)),
+        }
+
+    y_act, p_act = y_true[:, active], preds[:, active]
+    macro_f1 = float(f1_score(y_act, p_act, average="macro", zero_division=0))
+    micro_f1 = float(f1_score(y_act, p_act, average="micro", zero_division=0))
+    macro_p = float(precision_score(y_act, p_act, average="macro", zero_division=0))
+    macro_r = float(recall_score(y_act, p_act, average="macro", zero_division=0))
+
+    hr_active = [c for c in hr_clauses if c in clauses and active[clauses.index(c)]]
+    hr_f1 = float(
+        np.mean([per_clause[c]["f1"] for c in hr_active if c in per_clause])
+    ) if hr_active else 0.0
+
+    aucs = []
+    for j, c in enumerate(clauses):
+        if not active[j]:
+            continue
+        if 0 < y_true[:, j].sum() < len(y_true):
+            aucs.append(roc_auc_score(y_true[:, j], probs[:, j]))
+    macro_auc = float(np.mean(aucs)) if aucs else None
+
+    return {
+        "macro_f1": macro_f1,
+        "micro_f1": micro_f1,
+        "macro_precision": macro_p,
+        "macro_recall": macro_r,
+        "hr_f1": hr_f1,
+        "macro_auc": macro_auc,
+        "per_clause": per_clause,
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Train Phase 6 production pipeline (Phase 5 champion)")
+    parser.add_argument("--data", default="data/raw/CUADv1.json", help="CUAD JSON path")
+    parser.add_argument("--out-dir", default="models", help="Artifact directory")
+    parser.add_argument("--seed", type=int, default=42)
+    args = parser.parse_args()
+
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    print("=" * 72)
+    print("LEGAL CONTRACT ANALYZER — PRODUCTION TRAINING (Phase 6 rework)")
+    print("  features:  word 1-3gram TF-IDF @ 40K (Phase 4 ablation winner)")
+    print("  model:     LGBM per-clause (no LR blend — Phase 5 showed it HURTS at 40K)")
+    print("  threshold: class prior per clause (no CV, no test leak)")
+    print("=" * 72)
+
+    # -------- Load + split --------
+    t0 = time.time()
+    df = load_cuad_from_json(args.data)
+    train_df, test_df, valid_clauses = make_split(df, test_size=0.2, seed=args.seed)
+    print(f"\n[1/4] Loaded {len(df)} contracts  ({time.time()-t0:.1f}s)")
+    print(f"      train={len(train_df)}  test={len(test_df)}  valid clauses={len(valid_clauses)}")
+
+    X_train_raw = train_df["text"].values
+    X_test_raw = test_df["text"].values
+    y_train = train_df[valid_clauses].values.astype(int)
+    y_test = test_df[valid_clauses].values.astype(int)
+
+    # -------- Vectorize --------
+    print("\n[2/4] Fitting TF-IDF (word 1-3gram @ 40K) ...")
+    t0 = time.time()
+    vec = build_vectorizer()
+    vec.fit(X_train_raw)
+    X_train = vec.transform(X_train_raw)
+    X_test = vec.transform(X_test_raw)
+    print(f"      vocabulary: {len(vec.vocabulary_):,}  ({time.time()-t0:.1f}s)")
+
+    # -------- Train LGBM per clause --------
+    print("\n[3/4] Training per-clause LGBM classifiers ...")
+    t0 = time.time()
+    lgbm_models = train_lgbm_per_clause(X_train, y_train, valid_clauses)
+    n_fit = sum(m is not None for m in lgbm_models)
+    print(f"      {n_fit}/{len(lgbm_models)} trained  ({time.time()-t0:.1f}s)")
+
+    # -------- Class-prior thresholds (no CV, no leak) --------
+    thresholds = class_prior_thresholds(y_train, valid_clauses)
+    rare = sum(1 for v in thresholds.values() if v < 0.10)
+    freq = sum(1 for v in thresholds.values() if v >= 0.30)
+    print(f"      thresholds = class priors  ({rare} rare <10%, {freq} frequent ≥30%)")
+
+    # -------- Evaluate --------
+    print("\n[4/4] Evaluating on held-out test ...")
+    t0 = time.time()
+    probs_test = predict_lgbm(lgbm_models, X_test)
+    infer_time = time.time() - t0
+    per_contract_ms = 1000 * infer_time / len(X_test_raw)
+
+    metrics = evaluate(y_test, probs_test, thresholds, valid_clauses, HIGH_RISK_CLAUSES)
+
+    print()
+    print(f"  macro-F1      {metrics['macro_f1']:.4f}")
+    print(f"  HR-F1         {metrics['hr_f1']:.4f}")
+    print(f"  macro-AUC     {metrics['macro_auc']:.4f}")
+    print(f"  precision     {metrics['macro_precision']:.4f}")
+    print(f"  recall        {metrics['macro_recall']:.4f}")
+    print(f"  inference     {per_contract_ms:.2f} ms/contract")
+
+    sota = 0.65
+    macro_f1 = metrics["macro_f1"]
+    if macro_f1 >= sota - 0.005:
+        verdict = "PARITY/ABOVE"
+    else:
+        verdict = f"below by {sota - macro_f1:.4f}"
+    print()
+    print(f"  vs RoBERTa-large SOTA (~{sota}):  {verdict}")
+
+    # -------- Save artifacts --------
+    print(f"\nSaving artifacts to {out_dir}/")
+    joblib.dump(vec, out_dir / "vectorizer.joblib")
+    joblib.dump(lgbm_models, out_dir / "lgbm_models.joblib")
+    (out_dir / "thresholds.json").write_text(json.dumps(thresholds, indent=2))
+    (out_dir / "valid_clauses.json").write_text(json.dumps(valid_clauses, indent=2))
+
+    # Clean up leftover artifacts from previous pipelines
+    for old in ("lr_models.joblib", "blend_pipeline.joblib", "training_meta.json"):
+        p = out_dir / old
+        if p.exists():
+            p.unlink()
+            print(f"  removed stale artifact: {p.name}")
+
+    manifest = {
+        "trained_at": datetime.utcnow().isoformat() + "Z",
+        "pipeline": "Phase 6 rework (Phase 5 champion)",
+        "notes": (
+            "40K word 1-3gram TF-IDF + LGBM per-clause + class-prior thresholds. "
+            "No LR blend. No CV. No test-set touch. Thresholds are training positive "
+            "rates per clause — plug-in F1-optimal rule for calibrated classifiers."
+        ),
+        "dataset": "CUAD v1",
+        "n_contracts": int(len(df)),
+        "n_train": int(len(train_df)),
+        "n_test": int(len(test_df)),
+        "n_clauses": len(valid_clauses),
+        "seed": args.seed,
+        "tfidf_max_features": TFIDF_MAX_FEATURES,
+        "tfidf_ngram_range": list(TFIDF_NGRAM_RANGE),
+        "lgbm_params": LGBM_PARAMS,
+        "vectorizer_vocabulary_size": int(len(vec.vocabulary_)),
+        "test_metrics": {k: v for k, v in metrics.items() if k != "per_clause"},
+        "per_clause_test": metrics["per_clause"],
         "thresholds": thresholds,
-        "valid_clauses": valid_clauses,
-        "blend_alpha": BLEND_ALPHA,
-        "high_risk": HIGH_RISK,
-        "train_metrics": {"macro_f1": macro_f1, "hr_f1": hr_f1},
+        "inference_ms_per_contract": per_contract_ms,
+        "sota_reference": {
+            "model": "RoBERTa-large on CUAD",
+            "macro_f1": 0.65,
+            "note": "~0.65 across CUAD literature, ~0.01 variance across papers",
+        },
     }
-    joblib.dump(bundle, MODELS_DIR / "blend_pipeline.joblib")
-    print(f"  Saved: models/blend_pipeline.joblib")
-
-    meta = {
-        "model": "50/50 LGBM+LR blend (Youden calibration)",
-        "macro_f1_test": round(macro_f1, 4),
-        "hr_f1_test": round(hr_f1, 4),
-        "published_roberta_f1": 0.650,
-        "beats_roberta": macro_f1 > 0.650,
-        "n_classifiers": len(models_lgbm),
-        "n_valid_clauses": len(valid_clauses),
-        "blend_alpha": BLEND_ALPHA,
-        "tfidf_features": TFIDF_MAX_FEATURES,
-    }
-    with open(MODELS_DIR / "training_meta.json", "w") as f:
-        json.dump(meta, f, indent=2)
-    print(f"  Saved: models/training_meta.json")
-    print("\nTraining complete.")
+    (out_dir / "training_manifest.json").write_text(json.dumps(manifest, indent=2, default=str))
+    print(f"  wrote vectorizer.joblib, lgbm_models.joblib, thresholds.json, valid_clauses.json, training_manifest.json")
+    print("\nDone.")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--data-path", default=str(DATA_DIR / "cuad_classification.parquet"))
-    args = parser.parse_args()
-    main(Path(args.data_path))
+    main()

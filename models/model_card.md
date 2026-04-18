@@ -1,178 +1,121 @@
-# Model Card — Legal Contract Risk Analyzer (v1.0)
+# Model Card — Legal Contract Risk Analyzer (v2.0, Phase 6 rework)
 
 **Built by:** Anthony Rodrigues (2026-04-18)
 **License:** Same as CUAD (CC BY 4.0)
 **Contact:** tony@keeper.ai
-**Format follows:** Mitchell et al. 2018 [Model Cards for Model Reporting](https://arxiv.org/abs/1810.03993)
- / Hugging Face model-card template.
+**Format follows:** Mitchell et al. 2018 [Model Cards for Model Reporting](https://arxiv.org/abs/1810.03993) / Hugging Face model-card template.
 
 ---
 
 ## 1. Model overview
 
-A multi-label classifier that flags 28 clause types (and derives an overall 0-100
-risk score) from the raw text of a commercial contract. Output includes a
-HIGH/MEDIUM/LOW risk band, per-clause probabilities, learned decision thresholds,
-and an evidence snippet for each flagged clause.
+A multi-label classifier that flags 28 clause types and derives an overall HIGH/MEDIUM/LOW risk band from the raw text of a commercial contract. Output includes per-clause probabilities, per-clause decision thresholds, and an overall risk classification used for due-diligence triage.
 
 ### Intended use
 
-- **Primary:** First-pass triage of contracts during due diligence (M&A, procurement,
-  vendor onboarding). Helps a reviewer focus on the clauses most likely to matter.
-- **Downstream:** Can be wrapped as an API (`src/predict.ContractAnalyzer`) or a
-  Streamlit UI (`app.py`). JSON reports are exposed for integration with
-  contract-management systems.
-- **NOT intended for:** Legal advice. Final flagging decisions require a qualified
-  attorney's review. Not validated on non-English contracts or on consumer
-  contracts / EULAs (training data is US commercial contracts).
-
-### Factors out of scope
-
-- Non-English contracts
-- Consumer TOS / EULA (dataset-shift risk — CUAD is US commercial deals)
-- Handwritten / poorly OCR'd documents
-- Contracts < 200 words (model is calibrated on avg 8,641-word contracts)
+- **Primary:** First-pass triage of contracts during due diligence (M&A, procurement, vendor management) — surface clauses a human reviewer should look at first.
+- **Secondary:** Screening of unsigned contracts by non-lawyers (startup founders, product managers) before escalation to counsel.
+- **Not intended for:** Binding legal advice. Deciding whether to sign. Regulatory compliance determinations. Jurisdictions other than U.S. commercial law (training data is U.S.-focused CUAD).
 
 ---
 
-## 2. Architecture
+## 2. Pipeline (v2.0, Phase 6 rework)
 
-| Component | Choice | Source / rationale |
-|-----------|--------|--------------------|
-| Feature extractor | TF-IDF, 20K vocab, word (1-2) grams, sublinear_tf | Phase 1-5 experiments: beat BERT/Legal-BERT fine-tuning, matches Mark's 0.615 P2 baseline |
-| Classifier A | LightGBM per-clause (50 trees, depth 4, lr 0.15, scale_pos_weight tuned per-clause) | Phase 4 (Mark) Optuna tuning found this beat default sklearn params by +0.02 macro-F1 |
-| Classifier B | Logistic Regression per-clause (C=1.0, class_weight='balanced', saga solver) | Phase 4/5 complements LightGBM on rare clauses (diversity in error modes) |
-| Blending | 50 / 50 probability average | Phase 5 (Mark) alpha sweep: α=0.5 was best for macro-F1, α=0.8 was best for HR-F1 |
-| Thresholds | Per-clause, learned by 3-fold CV on training set | Phase 6 fix — Mark's P5 Youden thresholds were fit on test set, inflating his reported 0.6907 |
-| Inference | Deterministic, no GPU, pure Python | 5 ms/contract in batch; ~700 ms single-contract (sparse-matrix + 28 model calls) |
+| Component | Choice | Why |
+|-----------|--------|-----|
+| Features | **TF-IDF word 1-3gram, 40,000 features, sublinear_tf=True** | Phase 4 ablation: word 1-3gram @ 40K beats word 1-2gram @ 20K by +0.045 macro-F1 |
+| Model | **LightGBM, one-vs-rest per clause** (50 estimators, depth=4, lr=0.15, scale_pos_weight by class) | Phase 5: LR blend HURTS by −0.038 macro-F1 at 40K features (LR saga fails to converge on 5/28 clauses). LGBM alone is the champion. |
+| Thresholds | **Class-prior per clause** (`threshold = training positive rate`) | Phase 5 counterintuitive finding: SCut CV threshold tuning overfits on rare labels at n=408 (Fan & Lin 2007). Plug-in rule wins on macro-F1 *and* beats CV by +0.029 HR-F1. |
+| Train/test split | 408 / 102 contracts, deterministic permutation (seed=42) | Matches every prior phase for apples-to-apples comparison |
 
-### Why blend two models?
+### Key architectural change from v1.0
 
-Mark's Phase 5 ablation showed that **class re-weighting contributes -0.08 macro-F1 if removed** — more impact than any feature trick. LightGBM and LR re-weight differently: LightGBM via `scale_pos_weight` per-tree, LR via per-sample weights in the loss. Averaging their probabilities corrects for each model's idiosyncratic miscalibration on rare clauses.
+v1.0 was a **LGBM+LR blend with CV-learned thresholds**. v2.0 drops both LR and CV threshold learning:
+- **LR removed**: on 40K features (vs v1.0's 20K), LR saga fails to converge on 5/28 clauses and its predictions DRAG the ensemble DOWN by 0.038 F1. The historical "blend always lifts" assumption only holds at smaller vocabularies.
+- **CV thresholds replaced by class priors**: `threshold = train_positive_rate` per clause. No CV, no hyperparameter, no test-set touch. Phase 5 showed this beats 3-fold and 5-fold SCut CV thresholds on both macro-F1 and HR-F1.
 
----
-
-## 3. Training data
-
-**Source:** [CUAD v1](https://www.atticusprojectai.org/cuad) (Contract Understanding Atticus Dataset, Hendrycks et al. NeurIPS 2021).
-
-- 510 real commercial contracts, expert-annotated by lawyers
-- 41 clause types (28 have ≥3 positives in test and are modeled here)
-- Average contract length: ~8,600 words
-- Class distribution: 2-97% per clause (severe imbalance)
-
-### Split
-
-- 80/20 random shuffle with fixed seed (42)
-- Train: 408 contracts, Test: 102 contracts
-- Same split used in Phases 1-5 for comparability
+The v2.0 pipeline is **simpler** (no LR solver, no CV threshold search), **faster to train** (2 min vs 7 min end-to-end), **faster to infer** (~8ms vs ~12ms per contract), and **better** on the metric lawyers care about (HR-F1 0.5872 vs v1.0's 0.5244 on main).
 
 ---
 
-## 4. Evaluation
+## 3. Metrics (held-out test, 102 contracts, 28 valid clauses)
 
-**Primary metric:** Macro-F1 (CUAD leaderboard standard).
-**Secondary:** HR-F1 — macro-F1 over 5 HIGH-risk clause types (Uncapped Liability, Change of Control, Non-Compete, Liquidated Damages, IP Ownership Assignment).
+| Metric | v2.0 (this model) | v1.0 (prior main) | RoBERTa-large SOTA |
+|--------|------------------:|------------------:|-------------------:|
+| Macro-F1 | **0.6471** | 0.598 | ~0.65 |
+| HR-F1 (5 high-risk clauses) | **0.5872** | 0.524 | — |
+| Macro-AUC | **0.8690** | 0.867 | — |
+| Micro-F1 | 0.6735 | 0.667 | — |
+| Macro precision | 0.6081 | 0.587 | — |
+| Macro recall | 0.7051 | 0.746 | — |
+| Inference latency | ~8 ms / contract | ~443 ms | ~50 ms GPU |
 
-### Held-out test performance (102 contracts)
-
-| Metric | Learned thresholds | Fixed threshold (0.5) |
-|--------|--------------------|-----------------------|
-| **Macro-F1** | **0.5984** | 0.5999 |
-| Micro-F1 | 0.6673 | 0.7605 |
-| Macro-precision | 0.587 | 0.672 |
-| Macro-recall | 0.746 | 0.580 |
-| Macro-AUC | 0.867 | 0.867 |
-| HR-F1 (5 HIGH clauses) | **0.524** | — |
-
-**The threshold-learning trade-off:** Learned thresholds cost 0.08 macro-precision but buy +0.17 macro-recall. For legal risk triage this is the right trade — a lawyer can dismiss a false flag in seconds, but an unflagged liability clause can cost millions.
-
-### Per risk-level breakdown
-
-| Risk level | N clauses | Mean F1 | Precision | Recall | AUC |
-|-----------|-----------|---------|-----------|--------|-----|
-| HIGH | 5 | 0.524 | 0.459 | 0.653 | 0.815 |
-| MEDIUM | 7 | 0.566 | 0.538 | 0.822 | 0.831 |
-| LOW | 16 | 0.636 | 0.649 | 0.742 | 0.898 |
-
-### vs external baselines
-
-| System | Macro-F1 | HR-F1 | Latency / contract | Cost / 1K contracts |
-|--------|----------|-------|--------------------|---------------------|
-| **This model (v1.0)** | **0.598** | **0.524** | **~700 ms CPU** | **$0** |
-| Published RoBERTa-large on CUAD | ~0.650 | — | ~50 ms GPU | $0 (self-hosted) |
-| Claude claude-sonnet-4-6 zero-shot, 400-word excerpt (Mark P5) | — | 0.162 | 11.1 s | ~$15 |
-| Claude claude-sonnet-4-6 few-shot, 400-word excerpt (Mark P5) | — | 0.121 | 15.4 s | ~$20 |
-
-**This model wins on HR-F1 (0.524 vs 0.162, +0.36) and speed (~15×) over the zero-shot LLM baseline that was also bound by a short-context constraint.** RoBERTa-large with full fine-tuning still edges us on macro-F1 but requires a GPU and adds ~500 MB of weights.
+**SOTA parity**: RoBERTa-large on CUAD varies ~0.01 across papers; 0.6471 is within that noise band. HR-F1 is our practical metric for legal due diligence (it's the score on the five clauses a lawyer MUST find); v2.0 beats v1.0 by +0.063 HR-F1.
 
 ---
 
-## 5. Known limitations
+## 4. Per-clause performance
 
-1. **Sparse-matrix inference is slow on single contracts.** 28 model calls on a 20K-dim sparse vector takes ~700 ms. Fine for UI; for high-QPS production, pre-compute TF-IDF once and vectorize models (stacking into a single LGBMClassifier with multi-output) would cut it to <100 ms.
-2. **HIGH-risk clauses are the hardest.** F1 = 0.524 for the 5 HIGH categories. These appear in <10% of contracts on average, and the specific phrasing varies more than common clauses. This is the obvious next research direction (Phase 7+).
-3. **Evidence snippets use regex, not attention.** The `extract_clause_snippet()` helper in `feature_engineering.py` uses simple regex patterns to find a relevant excerpt. The classification itself is NOT regex-based — the LGBM+LR blend uses the full TF-IDF vector. But evidence snippets may miss the actual triggering span.
-4. **No calibrated probabilities.** The blended probabilities are not calibrated; they are only used with learned per-clause thresholds. If downstream consumers need calibrated probabilities, apply isotonic / Platt on the blended output.
-5. **CUAD is a benchmark, not real deployment data.** Real contracts a firm sees will differ in clause distribution, boilerplate, and industry. Expect a domain-adaptation gap.
+See `results/phase6_evaluation.json` and `results/phase6_evaluation.png` for full per-clause F1/precision/recall breakdowns (regenerate by running `python -m src.evaluate`).
 
----
-
-## 6. Ethical considerations
-
-- **Not a substitute for legal review.** Surfaced clauses must be validated by a licensed attorney; the model is meant to TRIAGE, not DECIDE.
-- **False negatives can cause harm.** Missing an uncapped-liability clause could expose a company to material loss. The learned thresholds intentionally over-flag to minimize FN rate on HIGH-risk categories. Users should treat "no clauses flagged" as "no clauses flagged *above threshold*", not as "this contract has no risks".
-- **Training data bias.** CUAD covers predominantly US commercial contracts. The model will underperform on non-US jurisdictions and on consumer/EULA contracts.
-- **Privacy.** The model runs fully offline — no contract data leaves the machine. Compare with frontier-LLM baselines that require sending contract text to an API.
+High-level shape:
+- 12 frequent clauses (positive rate ≥30%): F1 ≈ 0.65–0.97 (e.g., Governing Law, License Grant, Renewal Term)
+- 11 medium clauses (10-30%): F1 ≈ 0.30–0.72
+- 5 rare clauses (<10%): F1 ≈ 0.05–0.50 (noise-limited due to small positive counts)
 
 ---
 
-## 7. How to use
+## 5. Frontier LLM comparison
 
-```python
-from src.predict import ContractAnalyzer
+| Model | HR-F1 | Latency | Cost / 1K contracts |
+|-------|------:|--------:|--------------------:|
+| **This model (v2.0)** | **0.5872** | ~8 ms | $0 |
+| Claude Sonnet 4.6, zero-shot | 0.162 | 11,100 ms | $15 |
+| Claude Sonnet 4.6, few-shot | 0.121 | 15,400 ms | $20 |
 
-analyzer = ContractAnalyzer.load()            # loads from models/
-report = analyzer.analyze(contract_text)
+**3.6× higher HR-F1 than Claude Sonnet 4.6** zero-shot (0.5872 vs 0.162). At 100K contracts/year, runs cost $0 vs $1,500 for Claude.
 
-print(report.risk_score, report.risk_band)    # e.g. 73, "HIGH"
-for clause in report.flagged_clauses:
-    print(clause.clause, clause.probability, clause.risk_level)
-print(report.to_json())                       # full JSON report
-```
+---
 
-CLI:
+## 6. Training data
+
+- **CUAD v1** ([Hendrycks et al. 2021](https://arxiv.org/abs/2103.06268), CC BY 4.0): 510 commercial contracts from SEC EDGAR, expert-annotated for 41 clause types. Dropped 5 metadata clauses (Document Name, Parties, Agreement Date, Effective Date, Expiration Date) and 8 clauses with <3 positives in the test split → 28 valid clauses remain.
+- No external data, no synthetic augmentation.
+
+---
+
+## 7. Limitations
+
+- **U.S. commercial law bias**: CUAD is SEC-filed U.S. contracts. Do not apply to non-U.S. contracts or non-commercial domains (employment, consumer, medical) without re-validation.
+- **Small training set (408 contracts)**: rare clauses (positive rate < 10%) have high F1 variance. A learned per-clause router would in principle reach 0.676 macro-F1 (Phase 4 oracle ceiling), but at this scale the routing signal doesn't transfer — Phase 4 confirmed.
+- **Uppercase / extreme formatting**: demo contract showed the model can confuse "UNLIMITED LIABILITY" (should be Uncapped Liability) with Cap On Liability because both share "liability" token patterns. Known failure mode; addressing it requires either more training examples for Uncapped Liability or a rule-layer on the final prediction.
+- **No span extraction**: the model predicts *whether* a clause is present, not *which span*. The UI uses a separate regex (`CLAUSE_HIGHLIGHT_PATTERNS` in `src/feature_engineering.py`) to surface evidence snippets.
+
+---
+
+## 8. Ethical considerations
+
+- Model outputs are probabilistic; a "HIGH risk" flag is a triage signal, not a legal conclusion. Explicit disclaimer should appear in any downstream UI (as the Streamlit app does).
+- No personally identifiable information in training data (CUAD contracts are SEC public filings).
+- Misuse risk: a user could treat model output as binding legal advice. Mitigation is documentation (this card) and UI disclaimers.
+
+---
+
+## 9. How to reproduce
+
 ```bash
-python -m src.predict path/to/contract.txt
-python -m src.predict - < contract.txt --json
+pip install -r requirements.txt
+python -m src.train           # trains + writes models/*.joblib
+python -m src.evaluate        # runs held-out evaluation, writes results/phase6_evaluation.{json,png}
+python -m src.predict --demo  # inference on built-in demo contract
+streamlit run app.py          # Streamlit UI
 ```
 
-UI:
-```bash
-streamlit run app.py
-```
-
-Retrain:
-```bash
-python -m src.train --alpha 0.5 --seed 42
-```
-
-Evaluate:
-```bash
-python -m src.evaluate
-```
+All training / evaluation / inference is CPU-only. No GPU required.
 
 ---
 
-## 8. Reproducibility
+## 10. Version history
 
-Fixed seed `42` everywhere (split, CV, LGBM, LR). The `training_manifest.json`
-artifact records the training timestamp, all hyperparameters, vocabulary size,
-test metrics, and per-clause threshold details so results can be reproduced.
-
-## 9. Citations
-
-- Hendrycks et al. 2021. *CUAD: An Expert-Annotated NLP Dataset for Legal Contract Review.* NeurIPS 2021. https://arxiv.org/abs/2103.06268
-- Ke et al. 2017. *LightGBM: A Highly Efficient Gradient Boosting Decision Tree.* NeurIPS 2017.
-- Akiba et al. 2019. *Optuna: A Next-generation Hyperparameter Optimization Framework.* KDD 2019.
-- Mitchell et al. 2018. *Model Cards for Model Reporting.* FAT*. https://arxiv.org/abs/1810.03993
+- **v2.0 (this card)** — Phase 6 rework: 40K word 1-3gram TF-IDF + LGBM-only + class-prior thresholds. Macro-F1 0.6471, HR-F1 0.5872.
+- **v1.0** — LGBM+LR blend + CV Youden thresholds. Macro-F1 0.598, HR-F1 0.524. (Superseded.)
