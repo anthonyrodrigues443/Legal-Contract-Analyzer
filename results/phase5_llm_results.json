@@ -1,0 +1,88 @@
+{
+  "date": "2026-04-17",
+  "model": "claude-sonnet-4-6",
+  "n_contracts": 30,
+  "lightgbm": {
+    "hr_macro_f1": 0.4988095238095238,
+    "per_clause": {
+      "Uncapped Liability": {
+        "f1": 0.6666666666666666,
+        "precision": 0.6666666666666666,
+        "recall": 0.6666666666666666
+      },
+      "Change Of Control": {
+        "f1": 0.42857142857142855,
+        "precision": 0.5,
+        "recall": 0.375
+      },
+      "Non-Compete": {
+        "f1": 0.5,
+        "precision": 1.0,
+        "recall": 0.3333333333333333
+      },
+      "Liquidated Damages": {
+        "f1": 0.4,
+        "precision": 0.5,
+        "recall": 0.3333333333333333
+      }
+    },
+    "latency_ms": 2.0
+  },
+  "zero_shot": {
+    "hr_macro_f1": 0.16233766233766234,
+    "per_clause": {
+      "Uncapped Liability": {
+        "f1": 0.0,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "Change Of Control": {
+        "f1": 0.36363636363636365,
+        "precision": 0.6666666666666666,
+        "recall": 0.25
+      },
+      "Non-Compete": {
+        "f1": 0.2857142857142857,
+        "precision": 1.0,
+        "recall": 0.16666666666666666
+      },
+      "Liquidated Damages": {
+        "f1": 0.0,
+        "precision": 0.0,
+        "recall": 0.0
+      }
+    },
+    "avg_latency_s": 11.093114932378134,
+    "errors": 0
+  },
+  "few_shot": {
+    "hr_macro_f1": 0.12142857142857143,
+    "per_clause": {
+      "Uncapped Liability": {
+        "f1": 0.0,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "Change Of Control": {
+        "f1": 0.2,
+        "precision": 0.5,
+        "recall": 0.125
+      },
+      "Non-Compete": {
+        "f1": 0.2857142857142857,
+        "precision": 1.0,
+        "recall": 0.16666666666666666
+      },
+      "Liquidated Damages": {
+        "f1": 0.0,
+        "precision": 0.0,
+        "recall": 0.0
+      }
+    },
+    "avg_latency_s": 15.43501047293345,
+    "errors": 0
+  },
+  "lgbm_advantage_vs_zero": 0.3365,
+  "lgbm_advantage_vs_few": 0.3774,
+  "latency_ratio_zero_vs_lgbm": 5547.0
+}
