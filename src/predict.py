@@ -1,277 +1,192 @@
 """
-Production inference API for Legal Contract Analyzer.
+Inference pipeline for Legal Contract Analyzer.
+Loads saved blend model and runs prediction on new contract text.
 
-Loads serialized artifacts from models/ and runs prediction on raw contract text.
-Designed to be called from app.py (Streamlit), a CLI, or any downstream service.
-
-Example:
-    from src.predict import ContractAnalyzer
-
-    analyzer = ContractAnalyzer.load()
-    report = analyzer.analyze(contract_text)
-    print(report.risk_score)         # 0-100
-    print(report.flagged_clauses)    # list of dicts with probability, risk level, snippet
-    print(report.to_json())
+Usage:
+  python src/predict.py --text "Contract text here..."
+  python src/predict.py --file path/to/contract.txt
+  python src/predict.py --demo   # run on a short sample contract
 """
-from __future__ import annotations
 
+import argparse
 import json
 import time
-from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import joblib
 import numpy as np
 
-from src.feature_engineering import (
-    HIGH_RISK_CLAUSES,
-    MEDIUM_RISK_CLAUSES,
-    extract_clause_snippet,
-    risk_level,
-)
+ROOT = Path(__file__).resolve().parent.parent
+MODELS_DIR = ROOT / "models"
+
+HIGH_RISK = ["Uncapped Liability", "Change Of Control", "Non-Compete", "Liquidated Damages"]
+MEDIUM_RISK = [
+    "Indemnification", "Cap On Liability", "Termination For Convenience",
+    "Exclusivity", "No-Solicit Of Employees", "No-Solicit Of Customers",
+]
+
+RISK_LEVEL = {c: "HIGH" for c in HIGH_RISK}
+RISK_LEVEL.update({c: "MEDIUM" for c in MEDIUM_RISK})
 
 
-MODELS_DIR_DEFAULT = Path("models")
+def load_model(model_path: Path = None):
+    path = model_path or MODELS_DIR / "blend_pipeline.joblib"
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Model not found at {path}. Run `python src/train.py` first."
+        )
+    return joblib.load(path)
 
 
-@dataclass
-class ClausePrediction:
-    """Per-clause output of the classifier."""
-    clause: str
-    probability: float
-    threshold: float
-    flagged: bool
-    risk_level: str  # HIGH / MEDIUM / LOW
-    evidence_snippet: Optional[str] = None
+def predict(text: str, bundle: dict) -> dict:
+    """
+    Run the blend pipeline on a single contract text.
+    Returns per-clause probabilities, predictions, and risk scores.
+    """
+    vec = bundle["vectorizer"]
+    lgbm_models = bundle["lgbm_models"]
+    lr_models = bundle["lr_models"]
+    thresholds = bundle["thresholds"]
+    valid_clauses = bundle["valid_clauses"]
+    alpha = bundle["blend_alpha"]
 
-    def to_dict(self) -> dict:
-        return asdict(self)
+    t0 = time.time()
+    Xmat = vec.transform([text])
 
+    probs_lgbm = np.zeros(len(valid_clauses))
+    probs_lr = np.zeros(len(valid_clauses))
 
-@dataclass
-class ContractReport:
-    """Full analysis report for a single contract."""
-    n_flagged: int
-    n_high_risk_flagged: int
-    n_medium_risk_flagged: int
-    risk_score: float           # 0-100
-    risk_band: str              # LOW / MEDIUM / HIGH
-    inference_ms: float
-    word_count: int
-    flagged_clauses: List[ClausePrediction] = field(default_factory=list)
-    all_clauses: List[ClausePrediction] = field(default_factory=list)
+    for j, clause in enumerate(valid_clauses):
+        if clause in lgbm_models:
+            probs_lgbm[j] = lgbm_models[clause].predict_proba(Xmat)[0, 1]
+        if clause in lr_models:
+            probs_lr[j] = lr_models[clause].predict_proba(Xmat)[0, 1]
 
-    def to_dict(self) -> dict:
-        return {
-            "n_flagged": self.n_flagged,
-            "n_high_risk_flagged": self.n_high_risk_flagged,
-            "n_medium_risk_flagged": self.n_medium_risk_flagged,
-            "risk_score": self.risk_score,
-            "risk_band": self.risk_band,
-            "inference_ms": self.inference_ms,
-            "word_count": self.word_count,
-            "flagged_clauses": [c.to_dict() for c in self.flagged_clauses],
-            "all_clauses": [c.to_dict() for c in self.all_clauses],
+    probs_blend = alpha * probs_lgbm + (1 - alpha) * probs_lr
+    latency_ms = (time.time() - t0) * 1000
+
+    results = {}
+    for j, clause in enumerate(valid_clauses):
+        thr = thresholds.get(clause, 0.5)
+        prob = float(probs_blend[j])
+        detected = prob >= thr
+        results[clause] = {
+            "probability": round(prob, 4),
+            "detected": bool(detected),
+            "threshold": round(thr, 4),
+            "risk_level": RISK_LEVEL.get(clause, "STANDARD"),
         }
 
-    def to_json(self, indent: int = 2) -> str:
-        return json.dumps(self.to_dict(), indent=indent)
+    detected_clauses = [c for c, v in results.items() if v["detected"]]
+    high_risk_detected = [c for c in detected_clauses if c in HIGH_RISK]
+    overall_risk = (
+        "HIGH" if high_risk_detected else
+        "MEDIUM" if any(RISK_LEVEL.get(c) == "MEDIUM" for c in detected_clauses) else
+        "LOW"
+    )
+
+    return {
+        "clauses": results,
+        "detected_count": len(detected_clauses),
+        "high_risk_detected": high_risk_detected,
+        "overall_risk": overall_risk,
+        "latency_ms": round(latency_ms, 2),
+        "word_count": len(text.split()),
+    }
 
 
-class ContractAnalyzer:
-    """Production inference wrapper for the Legal Contract Analyzer model."""
+def format_report(prediction: dict) -> str:
+    lines = [
+        "=" * 60,
+        "LEGAL CONTRACT RISK ANALYSIS",
+        f"Overall Risk: {prediction['overall_risk']}",
+        f"Clauses detected: {prediction['detected_count']} / {len(prediction['clauses'])}",
+        f"High-risk clauses: {len(prediction['high_risk_detected'])}",
+        f"Latency: {prediction['latency_ms']}ms | Words: {prediction['word_count']}",
+        "=" * 60,
+        "",
+        "HIGH-RISK CLAUSES:",
+    ]
+    for c in HIGH_RISK:
+        if c in prediction["clauses"]:
+            v = prediction["clauses"][c]
+            flag = "[DETECTED]" if v["detected"] else "[absent]  "
+            lines.append(f"  {flag} {c:<35} prob={v['probability']:.3f}")
 
-    def __init__(self, vectorizer, lgbm_models, lr_models, thresholds, valid_clauses, alpha=0.5):
-        self.vectorizer = vectorizer
-        self.lgbm_models = lgbm_models
-        self.lr_models = lr_models
-        self.thresholds = thresholds
-        self.valid_clauses = valid_clauses
-        self.alpha = alpha
+    lines += ["", "MEDIUM-RISK CLAUSES:"]
+    for c in MEDIUM_RISK:
+        if c in prediction["clauses"]:
+            v = prediction["clauses"][c]
+            flag = "[DETECTED]" if v["detected"] else "[absent]  "
+            lines.append(f"  {flag} {c:<35} prob={v['probability']:.3f}")
 
-    # ------------------------------------------------------------------
-    # Loading
-    # ------------------------------------------------------------------
-    @classmethod
-    def load(cls, models_dir: str | Path = MODELS_DIR_DEFAULT) -> "ContractAnalyzer":
-        models_dir = Path(models_dir)
-        if not (models_dir / "vectorizer.joblib").exists():
-            raise FileNotFoundError(
-                f"No model artifacts found in {models_dir}/. "
-                "Run `python -m src.train` first."
-            )
+    if prediction["high_risk_detected"]:
+        lines += ["", "ACTION REQUIRED: Review the following high-risk clauses before signing:"]
+        for c in prediction["high_risk_detected"]:
+            lines.append(f"  ⚠  {c}")
 
-        vectorizer = joblib.load(models_dir / "vectorizer.joblib")
-        lgbm_models = joblib.load(models_dir / "lgbm_models.joblib")
-        lr_models = joblib.load(models_dir / "lr_models.joblib")
-        thresholds = json.loads((models_dir / "thresholds.json").read_text())
-        valid_clauses = json.loads((models_dir / "valid_clauses.json").read_text())
-
-        manifest_path = models_dir / "training_manifest.json"
-        alpha = 0.5
-        if manifest_path.exists():
-            alpha = json.loads(manifest_path.read_text()).get("alpha", 0.5)
-
-        return cls(
-            vectorizer=vectorizer,
-            lgbm_models=lgbm_models,
-            lr_models=lr_models,
-            thresholds=thresholds,
-            valid_clauses=valid_clauses,
-            alpha=alpha,
-        )
-
-    # ------------------------------------------------------------------
-    # Prediction primitives
-    # ------------------------------------------------------------------
-    def predict_proba(self, texts: List[str] | str) -> np.ndarray:
-        """Predict clause probabilities for one or many contracts.
-
-        Returns an (n_docs, n_clauses) numpy array aligned with self.valid_clauses.
-        """
-        if isinstance(texts, str):
-            texts = [texts]
-        X = self.vectorizer.transform(texts)
-        n_clauses = len(self.valid_clauses)
-        probs = np.zeros((X.shape[0], n_clauses))
-
-        for j in range(n_clauses):
-            lgbm = self.lgbm_models[j]
-            lr = self.lr_models[j]
-            plgbm = lgbm.predict_proba(X)[:, 1] if lgbm is not None else None
-            plr = lr.predict_proba(X)[:, 1] if lr is not None else None
-            if plgbm is not None and plr is not None:
-                probs[:, j] = self.alpha * plgbm + (1 - self.alpha) * plr
-            elif plgbm is not None:
-                probs[:, j] = plgbm
-            elif plr is not None:
-                probs[:, j] = plr
-        return probs
-
-    def predict(self, texts: List[str] | str) -> np.ndarray:
-        """Binary predictions using learned per-clause thresholds."""
-        probs = self.predict_proba(texts)
-        preds = np.zeros_like(probs, dtype=int)
-        for j, clause in enumerate(self.valid_clauses):
-            t = self.thresholds.get(clause, 0.5)
-            preds[:, j] = (probs[:, j] >= t).astype(int)
-        return preds
-
-    # ------------------------------------------------------------------
-    # Rich analysis for the UI
-    # ------------------------------------------------------------------
-    def analyze(self, text: str) -> ContractReport:
-        """Produce a full ContractReport for one contract.
-
-        Includes risk score, per-clause flags, evidence snippets, and latency.
-        """
-        t0 = time.time()
-        probs = self.predict_proba(text)[0]
-        infer_ms = 1000 * (time.time() - t0)
-
-        all_clauses: List[ClausePrediction] = []
-        for j, clause in enumerate(self.valid_clauses):
-            p = float(probs[j])
-            thr = float(self.thresholds.get(clause, 0.5))
-            flagged = p >= thr
-            pred = ClausePrediction(
-                clause=clause,
-                probability=p,
-                threshold=thr,
-                flagged=flagged,
-                risk_level=risk_level(clause),
-                evidence_snippet=extract_clause_snippet(text, clause) if flagged else None,
-            )
-            all_clauses.append(pred)
-
-        flagged = [c for c in all_clauses if c.flagged]
-        n_high = sum(1 for c in flagged if c.risk_level == "HIGH")
-        n_med = sum(1 for c in flagged if c.risk_level == "MEDIUM")
-
-        # Risk score: 10 points per HIGH flagged clause, 4 per MEDIUM, 1 per LOW.
-        # Capped at 100. Calibrated so: no HIGH + few MED ~ 0-30 (LOW band),
-        # 1-2 HIGH or several MED ~ 31-70 (MEDIUM), 3+ HIGH ~ 71-100 (HIGH).
-        raw = 10 * n_high + 4 * n_med + 1 * max(0, len(flagged) - n_high - n_med)
-        score = min(100.0, raw)
-        if score >= 70:
-            band = "HIGH"
-        elif score >= 30:
-            band = "MEDIUM"
-        else:
-            band = "LOW"
-
-        # Sort flagged clauses: HIGH first, then by probability desc
-        risk_rank = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
-        flagged_sorted = sorted(
-            flagged, key=lambda c: (risk_rank[c.risk_level], -c.probability)
-        )
-        # All clauses sorted similarly (for full breakdown UI)
-        all_sorted = sorted(
-            all_clauses, key=lambda c: (risk_rank[c.risk_level], -c.probability)
-        )
-
-        return ContractReport(
-            n_flagged=len(flagged),
-            n_high_risk_flagged=n_high,
-            n_medium_risk_flagged=n_med,
-            risk_score=float(score),
-            risk_band=band,
-            inference_ms=float(infer_ms),
-            word_count=len(text.split()),
-            flagged_clauses=flagged_sorted,
-            all_clauses=all_sorted,
-        )
-
-    # ------------------------------------------------------------------
-    # Clause taxonomy accessors (used by app.py for "clauses missing" detection)
-    # ------------------------------------------------------------------
-    @property
-    def all_high_risk_clauses(self) -> List[str]:
-        return [c for c in HIGH_RISK_CLAUSES if c in self.valid_clauses]
-
-    @property
-    def all_medium_risk_clauses(self) -> List[str]:
-        return [c for c in MEDIUM_RISK_CLAUSES if c in self.valid_clauses]
+    lines += ["", "=" * 60]
+    return "\n".join(lines)
 
 
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
+DEMO_CONTRACT = """
+MASTER SOFTWARE SERVICES AGREEMENT
 
-def _cli():
-    import argparse
-    import sys
+This Agreement is entered into as of the date last signed below between ACME Corp ("Customer")
+and TechVendor Inc ("Vendor").
 
-    parser = argparse.ArgumentParser(description="Legal contract risk analyzer CLI")
-    parser.add_argument("input", help="Path to a contract .txt file, or '-' for stdin")
-    parser.add_argument("--models", default="models", help="Path to models/ directory")
-    parser.add_argument("--json", action="store_true", help="Print full JSON report")
+1. SERVICES. Vendor shall provide software development services as described in any Statement of Work.
+
+2. IP OWNERSHIP. All work product, inventions, and intellectual property created by Vendor under
+this Agreement shall be assigned to and become the exclusive property of Customer upon creation.
+Vendor hereby assigns all rights, title, and interest in such work product to Customer.
+
+3. NON-COMPETE. During the term of this Agreement and for two (2) years thereafter, Vendor shall
+not, directly or indirectly, engage in any business that competes with Customer's core business
+activities in the United States and Canada.
+
+4. LIABILITY. NOTWITHSTANDING ANYTHING TO THE CONTRARY, VENDOR'S TOTAL LIABILITY UNDER THIS
+AGREEMENT SHALL BE UNLIMITED. Vendor shall indemnify and hold harmless Customer from any and
+all claims, damages, losses, and expenses without limitation.
+
+5. TERMINATION. Either party may terminate this Agreement for convenience upon 30 days written notice.
+
+6. GOVERNING LAW. This Agreement shall be governed by the laws of the State of Delaware.
+"""
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Legal Contract Risk Analyzer")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--text", help="Contract text to analyze")
+    group.add_argument("--file", help="Path to contract .txt file")
+    group.add_argument("--demo", action="store_true", help="Run on demo contract")
+    parser.add_argument("--model-path", help="Path to saved model bundle")
+    parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
 
-    if args.input == "-":
-        text = sys.stdin.read()
+    print("Loading model...")
+    bundle = load_model(Path(args.model_path) if args.model_path else None)
+    print(f"Model loaded. Clauses: {len(bundle['valid_clauses'])}")
+
+    if args.demo:
+        text = DEMO_CONTRACT
+        print("\nRunning on DEMO contract...")
+    elif args.file:
+        text = Path(args.file).read_text(encoding="utf-8")
+    elif args.text:
+        text = args.text
     else:
-        text = Path(args.input).read_text()
-
-    analyzer = ContractAnalyzer.load(args.models)
-    report = analyzer.analyze(text)
-
-    if args.json:
-        print(report.to_json())
+        print("Provide --text, --file, or --demo. See --help.")
         return
 
-    print(f"RISK SCORE: {report.risk_score:.1f}/100  [{report.risk_band}]")
-    print(f"  {report.n_high_risk_flagged} HIGH-risk + {report.n_medium_risk_flagged} MEDIUM-risk clauses flagged")
-    print(f"  Inference: {report.inference_ms:.1f} ms  |  {report.word_count:,} words")
-    print()
-    print("FLAGGED CLAUSES:")
-    for c in report.flagged_clauses:
-        marker = "[HIGH]" if c.risk_level == "HIGH" else ("[MED] " if c.risk_level == "MEDIUM" else "[LOW] ")
-        print(f"  {marker} {c.clause:<38}  p={c.probability:.3f}  (threshold {c.threshold:.2f})")
-        if c.evidence_snippet:
-            print(f"           evidence: {c.evidence_snippet[:200]}")
+    prediction = predict(text, bundle)
+
+    if args.json:
+        print(json.dumps(prediction, indent=2))
+    else:
+        print(format_report(prediction))
 
 
 if __name__ == "__main__":
-    _cli()
+    main()

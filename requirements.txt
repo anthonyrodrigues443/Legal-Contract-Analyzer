@@ -25,5 +25,6 @@ faiss-cpu>=1.7.4
 evaluate>=0.4.0
 rouge-score>=0.1.2
 streamlit>=1.28.0
+altair>=5.0.0
 plotly>=5.17.0
 playwright>=1.40.0

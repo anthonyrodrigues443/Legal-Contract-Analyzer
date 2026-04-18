@@ -1,364 +1,207 @@
 {
+  "model": "50/50 LGBM+LR Blend (Youden calibration)",
   "phase": 6,
-  "model": "LGBM+LR blend (alpha=0.5), CV-learned thresholds",
-  "dataset": "CUAD v1",
-  "n_test": 102,
-  "n_clauses": 28,
-  "aggregate": {
-    "learned_thresholds": {
-      "label": "Learned thresholds (production)",
-      "macro_f1": 0.5984233216871964,
-      "micro_f1": 0.6673356748620171,
-      "macro_precision": 0.5870718940924399,
-      "macro_recall": 0.7459400258701897
+  "macro_f1": 0.7163,
+  "macro_precision": 0.7646,
+  "macro_recall": 0.8083,
+  "hr_f1": 0.5819,
+  "macro_auc": 0.8654,
+  "beats_roberta": true,
+  "per_clause": {
+    "Affiliate License-Licensee": {
+      "f1": 0.6667,
+      "precision": 1.0,
+      "recall": 0.5
     },
-    "fixed_0p5": {
-      "label": "Fixed 0.5 threshold",
-      "macro_f1": 0.5998616636198743,
-      "micro_f1": 0.7605095541401274,
-      "macro_precision": 0.6721082234299758,
-      "macro_recall": 0.5797848640243182
-    }
-  },
-  "by_risk_level": {
-    "HIGH": {
-      "n_clauses": 5,
-      "mean_f1": 0.524396708828468,
-      "mean_precision": 0.45850877192982453,
-      "mean_recall": 0.6532806324110672,
-      "mean_auc": 0.8153501829149874
+    "Affiliate License-Licensor": {
+      "f1": 0.6667,
+      "precision": 0.5,
+      "recall": 1.0
     },
-    "MEDIUM": {
-      "n_clauses": 7,
-      "mean_f1": 0.565970774641167,
-      "mean_precision": 0.5382054624737582,
-      "mean_recall": 0.8221296047658828,
-      "mean_auc": 0.8309735755158256
+    "Agreement Date": {
+      "f1": 0.9688,
+      "precision": 0.949,
+      "recall": 0.9894
     },
-    "LOW": {
-      "n_clauses": 16,
-      "mean_f1": 0.6357546275381869,
-      "mean_precision": 0.6486269336014303,
-      "mean_recall": 0.7415631455592999,
-      "mean_auc": 0.8984065842964419
-    }
-  },
-  "per_clause": [
-    {
-      "clause": "Governing Law",
-      "risk_level": "LOW",
-      "n_positive": 91,
-      "positive_rate": 0.8921568627450981,
-      "threshold": 0.5,
-      "f1": 0.9732620320855615,
-      "precision": 0.9479166666666666,
-      "recall": 1.0,
-      "auc": 0.9150849150849151
+    "Anti-Assignment": {
+      "f1": 0.9419,
+      "precision": 0.9125,
+      "recall": 0.9733
     },
-    {
-      "clause": "License Grant",
-      "risk_level": "LOW",
-      "n_positive": 53,
-      "positive_rate": 0.5196078431372549,
-      "threshold": 0.43000000000000005,
-      "f1": 0.9433962264150944,
-      "precision": 0.9433962264150944,
-      "recall": 0.9433962264150944,
-      "auc": 0.9703504043126685
+    "Audit Rights": {
+      "f1": 0.9184,
+      "precision": 0.8824,
+      "recall": 0.9574
     },
-    {
-      "clause": "Anti-Assignment",
-      "risk_level": "LOW",
-      "n_positive": 75,
-      "positive_rate": 0.7352941176470589,
-      "threshold": 0.6100000000000001,
-      "f1": 0.9240506329113924,
-      "precision": 0.8795180722891566,
-      "recall": 0.9733333333333334,
-      "auc": 0.9155555555555556
+    "Cap On Liability": {
+      "f1": 0.9431,
+      "precision": 0.9831,
+      "recall": 0.9062
     },
-    {
-      "clause": "Cap On Liability",
-      "risk_level": "MEDIUM",
-      "n_positive": 64,
-      "positive_rate": 0.6274509803921569,
-      "threshold": 0.33000000000000007,
-      "f1": 0.9037037037037037,
-      "precision": 0.8591549295774648,
-      "recall": 0.953125,
-      "auc": 0.9424342105263157
+    "Change Of Control": {
+      "f1": 0.6154,
+      "precision": 0.4651,
+      "recall": 0.9091
     },
-    {
-      "clause": "Insurance",
-      "risk_level": "LOW",
-      "n_positive": 32,
-      "positive_rate": 0.3137254901960784,
-      "threshold": 0.43000000000000005,
-      "f1": 0.9014084507042254,
-      "precision": 0.8205128205128205,
-      "recall": 1.0,
-      "auc": 0.9808035714285714
+    "Competitive Restriction Exception": {
+      "f1": 0.3934,
+      "precision": 0.2449,
+      "recall": 1.0
     },
-    {
-      "clause": "Audit Rights",
-      "risk_level": "LOW",
-      "n_positive": 47,
-      "positive_rate": 0.46078431372549017,
-      "threshold": 0.4700000000000001,
-      "f1": 0.9,
-      "precision": 0.8490566037735849,
-      "recall": 0.9574468085106383,
-      "auc": 0.9489361702127659
+    "Covenant Not To Sue": {
+      "f1": 0.7619,
+      "precision": 0.7273,
+      "recall": 0.8
     },
-    {
-      "clause": "No-Solicit Of Employees",
-      "risk_level": "MEDIUM",
-      "n_positive": 12,
-      "positive_rate": 0.11764705882352941,
-      "threshold": 0.4700000000000001,
+    "Document Name": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "Effective Date": {
+      "f1": 0.9349,
+      "precision": 0.9186,
+      "recall": 0.9518
+    },
+    "Exclusivity": {
+      "f1": 0.7692,
+      "precision": 0.7576,
+      "recall": 0.7812
+    },
+    "Expiration Date": {
+      "f1": 0.9405,
+      "precision": 0.908,
+      "recall": 0.9753
+    },
+    "Governing Law": {
+      "f1": 0.9838,
+      "precision": 0.9681,
+      "recall": 1.0
+    },
+    "Insurance": {
+      "f1": 0.9394,
+      "precision": 0.9118,
+      "recall": 0.9688
+    },
+    "Ip Ownership Assignment": {
+      "f1": 0.7805,
+      "precision": 0.8889,
+      "recall": 0.6957
+    },
+    "Irrevocable Or Perpetual License": {
+      "f1": 0.8696,
+      "precision": 1.0,
+      "recall": 0.7692
+    },
+    "Joint Ip Ownership": {
       "f1": 0.8,
       "precision": 1.0,
-      "recall": 0.6666666666666666,
-      "auc": 0.9898148148148149
+      "recall": 0.6667
     },
-    {
-      "clause": "Renewal Term",
-      "risk_level": "LOW",
-      "n_positive": 33,
-      "positive_rate": 0.3235294117647059,
-      "threshold": 0.4900000000000001,
-      "f1": 0.7741935483870968,
-      "precision": 0.8275862068965517,
-      "recall": 0.7272727272727273,
-      "auc": 0.9393939393939394
+    "License Grant": {
+      "f1": 0.9608,
+      "precision": 0.98,
+      "recall": 0.9423
     },
-    {
-      "clause": "Warranty Duration",
-      "risk_level": "LOW",
-      "n_positive": 15,
-      "positive_rate": 0.14705882352941177,
-      "threshold": 0.31000000000000005,
-      "f1": 0.7333333333333333,
-      "precision": 0.7333333333333333,
-      "recall": 0.7333333333333333,
-      "auc": 0.9340996168582376
+    "Liquidated Damages": {
+      "f1": 0.5455,
+      "precision": 0.75,
+      "recall": 0.4286
     },
-    {
-      "clause": "IP Ownership Assignment",
-      "risk_level": "HIGH",
-      "n_positive": 23,
-      "positive_rate": 0.22549019607843138,
-      "threshold": 0.4100000000000001,
-      "f1": 0.723404255319149,
-      "precision": 0.7083333333333334,
-      "recall": 0.7391304347826086,
-      "auc": 0.9020363236103466
+    "Minimum Commitment": {
+      "f1": 0.7887,
+      "precision": 0.7368,
+      "recall": 0.8485
     },
-    {
-      "clause": "Covenant Not To Sue",
-      "risk_level": "MEDIUM",
-      "n_positive": 20,
-      "positive_rate": 0.19607843137254902,
-      "threshold": 0.4100000000000001,
-      "f1": 0.717948717948718,
-      "precision": 0.7368421052631579,
-      "recall": 0.7,
-      "auc": 0.8932926829268293
+    "Most Favored Nation": {
+      "f1": 0.1728,
+      "precision": 0.0946,
+      "recall": 1.0
     },
-    {
-      "clause": "Minimum Commitment",
-      "risk_level": "LOW",
-      "n_positive": 33,
-      "positive_rate": 0.3235294117647059,
-      "threshold": 0.31000000000000005,
-      "f1": 0.7096774193548387,
-      "precision": 0.55,
-      "recall": 1.0,
-      "auc": 0.9161176987263944
+    "No-Solicit Of Customers": {
+      "f1": 0.2319,
+      "precision": 0.1311,
+      "recall": 1.0
     },
-    {
-      "clause": "Revenue/Profit Sharing",
-      "risk_level": "MEDIUM",
-      "n_positive": 27,
-      "positive_rate": 0.2647058823529412,
-      "threshold": 0.4900000000000001,
-      "f1": 0.6567164179104478,
-      "precision": 0.55,
-      "recall": 0.8148148148148148,
-      "auc": 0.8859259259259259
+    "No-Solicit Of Employees": {
+      "f1": 0.88,
+      "precision": 0.8462,
+      "recall": 0.9167
     },
-    {
-      "clause": "Non-Transferable License",
-      "risk_level": "LOW",
-      "n_positive": 22,
-      "positive_rate": 0.21568627450980393,
-      "threshold": 0.5900000000000001,
-      "f1": 0.6363636363636364,
-      "precision": 0.6363636363636364,
-      "recall": 0.6363636363636364,
-      "auc": 0.897159090909091
-    },
-    {
-      "clause": "Post-Termination Services",
-      "risk_level": "LOW",
-      "n_positive": 41,
-      "positive_rate": 0.4019607843137255,
-      "threshold": 0.45000000000000007,
-      "f1": 0.6046511627906976,
-      "precision": 0.5777777777777777,
-      "recall": 0.6341463414634146,
-      "auc": 0.7736905237904839
-    },
-    {
-      "clause": "Change Of Control",
-      "risk_level": "HIGH",
-      "n_positive": 22,
-      "positive_rate": 0.21568627450980393,
-      "threshold": 0.4100000000000001,
-      "f1": 0.5925925925925926,
-      "precision": 0.5,
-      "recall": 0.7272727272727273,
-      "auc": 0.84375
-    },
-    {
-      "clause": "Volume Restriction",
-      "risk_level": "LOW",
-      "n_positive": 17,
-      "positive_rate": 0.16666666666666666,
-      "threshold": 0.29000000000000004,
-      "f1": 0.5882352941176471,
-      "precision": 0.4411764705882353,
-      "recall": 0.8823529411764706,
-      "auc": 0.9211072664359863
-    },
-    {
-      "clause": "ROFR/ROFO/ROFN",
-      "risk_level": "LOW",
-      "n_positive": 17,
-      "positive_rate": 0.16666666666666666,
-      "threshold": 0.39000000000000007,
-      "f1": 0.5806451612903226,
-      "precision": 0.6428571428571429,
-      "recall": 0.5294117647058824,
-      "auc": 0.9065743944636678
-    },
-    {
-      "clause": "Termination For Convenience",
-      "risk_level": "MEDIUM",
-      "n_positive": 38,
-      "positive_rate": 0.37254901960784315,
-      "threshold": 0.33000000000000007,
-      "f1": 0.5631067961165048,
-      "precision": 0.4461538461538462,
-      "recall": 0.7631578947368421,
-      "auc": 0.7323190789473684
-    },
-    {
-      "clause": "Notice Period To Terminate Renewal",
-      "risk_level": "LOW",
-      "n_positive": 19,
-      "positive_rate": 0.18627450980392157,
-      "threshold": 0.33000000000000007,
-      "f1": 0.56,
-      "precision": 0.45161290322580644,
-      "recall": 0.7368421052631579,
-      "auc": 0.8573240329740013
-    },
-    {
-      "clause": "Uncapped Liability",
-      "risk_level": "HIGH",
-      "n_positive": 24,
-      "positive_rate": 0.23529411764705882,
-      "threshold": 0.5700000000000001,
+    "Non-Compete": {
       "f1": 0.5,
-      "precision": 0.5,
-      "recall": 0.5,
-      "auc": 0.8498931623931624
-    },
-    {
-      "clause": "Non-Compete",
-      "risk_level": "HIGH",
-      "n_positive": 25,
-      "positive_rate": 0.24509803921568626,
-      "threshold": 0.29000000000000004,
-      "f1": 0.4878048780487805,
-      "precision": 0.3508771929824561,
-      "recall": 0.8,
-      "auc": 0.7854545454545454
-    },
-    {
-      "clause": "Liquidated Damages",
-      "risk_level": "HIGH",
-      "n_positive": 14,
-      "positive_rate": 0.13725490196078433,
-      "threshold": 0.23000000000000004,
-      "f1": 0.3181818181818182,
-      "precision": 0.23333333333333334,
-      "recall": 0.5,
-      "auc": 0.6956168831168831
-    },
-    {
-      "clause": "Third Party Beneficiary",
-      "risk_level": "LOW",
-      "n_positive": 9,
-      "positive_rate": 0.08823529411764706,
-      "threshold": 0.43000000000000005,
-      "f1": 0.2,
       "precision": 1.0,
-      "recall": 0.1111111111111111,
-      "auc": 0.8016726403823178
+      "recall": 0.3333
     },
-    {
-      "clause": "No-Solicit Of Customers",
-      "risk_level": "MEDIUM",
-      "n_positive": 8,
-      "positive_rate": 0.0784313725490196,
-      "threshold": 0.21000000000000002,
-      "f1": 0.16842105263157894,
-      "precision": 0.09195402298850575,
-      "recall": 1.0,
-      "auc": 0.723404255319149
+    "Non-Disparagement": {
+      "f1": 0.25,
+      "precision": 1.0,
+      "recall": 0.1429
     },
-    {
-      "clause": "Most Favored Nation",
-      "risk_level": "MEDIUM",
-      "n_positive": 7,
-      "positive_rate": 0.06862745098039216,
-      "threshold": 0.37000000000000005,
-      "f1": 0.1518987341772152,
-      "precision": 0.08333333333333333,
-      "recall": 0.8571428571428571,
-      "auc": 0.649624060150376
+    "Non-Transferable License": {
+      "f1": 0.6269,
+      "precision": 0.4667,
+      "recall": 0.9545
     },
-    {
-      "clause": "Non-Disparagement",
-      "risk_level": "LOW",
-      "n_positive": 7,
-      "positive_rate": 0.06862745098039216,
-      "threshold": 0.19000000000000003,
-      "f1": 0.14285714285714285,
-      "precision": 0.07692307692307693,
-      "recall": 1.0,
-      "auc": 0.7774436090225564
+    "Notice Period To Terminate Renewal": {
+      "f1": 0.5385,
+      "precision": 1.0,
+      "recall": 0.3684
     },
-    {
-      "clause": "Unlimited/All-You-Can-Eat-License",
-      "risk_level": "LOW",
-      "n_positive": 3,
-      "positive_rate": 0.029411764705882353,
-      "threshold": 0.43000000000000005,
-      "f1": 0.0,
-      "precision": 0.0,
-      "recall": 0.0,
-      "auc": 0.9191919191919192
+    "Parties": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "Post-Termination Services": {
+      "f1": 0.7156,
+      "precision": 0.5735,
+      "recall": 0.9512
+    },
+    "Renewal Term": {
+      "f1": 0.7949,
+      "precision": 0.6889,
+      "recall": 0.9394
+    },
+    "Revenue/Profit Sharing": {
+      "f1": 0.7241,
+      "precision": 0.6774,
+      "recall": 0.7778
+    },
+    "Rofr/Rofo/Rofn": {
+      "f1": 0.6857,
+      "precision": 0.6667,
+      "recall": 0.7059
+    },
+    "Termination For Convenience": {
+      "f1": 0.6281,
+      "precision": 0.4578,
+      "recall": 1.0
+    },
+    "Third Party Beneficiary": {
+      "f1": 0.3636,
+      "precision": 1.0,
+      "recall": 0.2222
+    },
+    "Uncapped Liability": {
+      "f1": 0.6667,
+      "precision": 0.5,
+      "recall": 1.0
+    },
+    "Unlimited/All-You-Can-Eat-License": {
+      "f1": 0.5,
+      "precision": 1.0,
+      "recall": 0.3333
+    },
+    "Volume Restriction": {
+      "f1": 0.7317,
+      "precision": 0.625,
+      "recall": 0.8824
+    },
+    "Warranty Duration": {
+      "f1": 0.7368,
+      "precision": 0.6087,
+      "recall": 0.9333
     }
-  ],
-  "latency_ms": {
-    "batch_total": 1222.2731113433838,
-    "batch_per_contract": 11.983069719052782,
-    "single_median": 443.20201873779297,
-    "claude_zero_shot_mark_p5": 11100,
-    "claude_few_shot_mark_p5": 15400,
-    "speedup_vs_claude_zero_shot": 25.045012275918758
   }
 }

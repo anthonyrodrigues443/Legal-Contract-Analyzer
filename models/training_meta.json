@@ -1,0 +1,11 @@
+{
+  "model": "50/50 LGBM+LR blend (Youden calibration)",
+  "macro_f1_test": 0.7163,
+  "hr_f1_test": 0.5819,
+  "published_roberta_f1": 0.65,
+  "beats_roberta": true,
+  "n_classifiers": 39,
+  "n_valid_clauses": 39,
+  "blend_alpha": 0.5,
+  "tfidf_features": 20000
+}
