@@ -1,0 +1,325 @@
+{
+  "phase": 4,
+  "author": "Anthony",
+  "date": "2026-04-18",
+  "seed": 42,
+  "notes": "LGBM-only; full LGBM+LR blend eval deferred to Phase 5. Baseline to beat: Phase 3 positional at macro-F1=0.6193 (full blend).",
+  "experiments": {
+    "positional (P3 champion)": {
+      "macro_f1": 0.6184851506141591,
+      "hr_f1": 0.5730368138364523,
+      "macro_auc": 0.8639655861492287,
+      "features": 40000
+    },
+    "control word 1-3gram 40K": {
+      "macro_f1": 0.6431238648611949,
+      "hr_f1": 0.5579808477955355,
+      "macro_auc": 0.8690175125064258,
+      "features": 40000
+    },
+    "hybrid trigrams + positional 60K": {
+      "macro_f1": 0.6103740118462072,
+      "hr_f1": 0.570242194247329,
+      "macro_auc": 0.8606075689940601,
+      "features": 60000
+    },
+    "oracle per-clause (upper bound)": {
+      "macro_f1": 0.6757458194595577,
+      "hr_f1": 0.5901141360990365,
+      "features": null
+    },
+    "learned router (80/20 train split)": {
+      "macro_f1": 0.6175182545240058,
+      "hr_f1": 0.5766502763483896,
+      "macro_auc": 0.8665418527572631,
+      "features": null,
+      "routing_agreement": 0.4642857142857143
+    }
+  },
+  "learned_choice": {
+    "Renewal Term": "trigrams",
+    "Notice Period To Terminate Renewal": "positional",
+    "Governing Law": "positional",
+    "Most Favored Nation": "positional",
+    "Non-Compete": "trigrams",
+    "No-Solicit Of Customers": "trigrams",
+    "No-Solicit Of Employees": "positional",
+    "Non-Disparagement": "trigrams",
+    "Termination For Convenience": "trigrams",
+    "ROFR/ROFO/ROFN": "positional",
+    "Change Of Control": "positional",
+    "Anti-Assignment": "trigrams",
+    "Revenue/Profit Sharing": "positional",
+    "Minimum Commitment": "positional",
+    "Volume Restriction": "positional",
+    "IP Ownership Assignment": "positional",
+    "License Grant": "trigrams",
+    "Non-Transferable License": "trigrams",
+    "Unlimited/All-You-Can-Eat-License": "trigrams",
+    "Post-Termination Services": "trigrams",
+    "Audit Rights": "trigrams",
+    "Uncapped Liability": "trigrams",
+    "Cap On Liability": "trigrams",
+    "Liquidated Damages": "positional",
+    "Warranty Duration": "trigrams",
+    "Insurance": "trigrams",
+    "Covenant Not To Sue": "positional",
+    "Third Party Beneficiary": "positional"
+  },
+  "test_winners": {
+    "Renewal Term": "trigrams",
+    "Notice Period To Terminate Renewal": "positional",
+    "Governing Law": "trigrams",
+    "Most Favored Nation": "trigrams",
+    "Non-Compete": "trigrams",
+    "No-Solicit Of Customers": "positional",
+    "No-Solicit Of Employees": "trigrams",
+    "Non-Disparagement": "trigrams",
+    "Termination For Convenience": "positional",
+    "ROFR/ROFO/ROFN": "trigrams",
+    "Change Of Control": "trigrams",
+    "Anti-Assignment": "positional",
+    "Revenue/Profit Sharing": "positional",
+    "Minimum Commitment": "positional",
+    "Volume Restriction": "trigrams",
+    "IP Ownership Assignment": "positional",
+    "License Grant": "trigrams",
+    "Non-Transferable License": "positional",
+    "Unlimited/All-You-Can-Eat-License": "trigrams",
+    "Post-Termination Services": "positional",
+    "Audit Rights": "trigrams",
+    "Uncapped Liability": "trigrams",
+    "Cap On Liability": "positional",
+    "Liquidated Damages": "positional",
+    "Warranty Duration": "positional",
+    "Insurance": "positional",
+    "Covenant Not To Sue": "positional",
+    "Third Party Beneficiary": "trigrams"
+  },
+  "per_clause_comparison": [
+    {
+      "clause": "Renewal Term",
+      "HR": "",
+      "positional": 0.7384615384615385,
+      "trigrams": 0.7878787878787878,
+      "d_tri_minus_pos": 0.04941724941724934,
+      "winner": "trigrams"
+    },
+    {
+      "clause": "Notice Period To Terminate Renewal",
+      "HR": "",
+      "positional": 0.5294117647058824,
+      "trigrams": 0.5106382978723404,
+      "d_tri_minus_pos": -0.018773466833541974,
+      "winner": "positional"
+    },
+    {
+      "clause": "Governing Law",
+      "HR": "",
+      "positional": 0.9732620320855615,
+      "trigrams": 0.978494623655914,
+      "d_tri_minus_pos": 0.005232591570352496,
+      "winner": "trigrams"
+    },
+    {
+      "clause": "Most Favored Nation",
+      "HR": "",
+      "positional": 0.0,
+      "trigrams": 0.2857142857142857,
+      "d_tri_minus_pos": 0.2857142857142857,
+      "winner": "trigrams"
+    },
+    {
+      "clause": "Non-Compete",
+      "HR": "*",
+      "positional": 0.4878048780487805,
+      "trigrams": 0.5,
+      "d_tri_minus_pos": 0.012195121951219523,
+      "winner": "trigrams"
+    },
+    {
+      "clause": "No-Solicit Of Customers",
+      "HR": "",
+      "positional": 0.2857142857142857,
+      "trigrams": 0.11764705882352941,
+      "d_tri_minus_pos": -0.1680672268907563,
+      "winner": "positional"
+    },
+    {
+      "clause": "No-Solicit Of Employees",
+      "HR": "",
+      "positional": 0.8571428571428571,
+      "trigrams": 0.8571428571428571,
+      "d_tri_minus_pos": 0.0,
+      "winner": "tie"
+    },
+    {
+      "clause": "Non-Disparagement",
+      "HR": "",
+      "positional": 0.18181818181818182,
+      "trigrams": 0.4,
+      "d_tri_minus_pos": 0.2181818181818182,
+      "winner": "trigrams"
+    },
+    {
+      "clause": "Termination For Convenience",
+      "HR": "",
+      "positional": 0.6296296296296297,
+      "trigrams": 0.6274509803921569,
+      "d_tri_minus_pos": -0.002178649237472796,
+      "winner": "positional"
+    },
+    {
+      "clause": "ROFR/ROFO/ROFN",
+      "HR": "",
+      "positional": 0.5909090909090909,
+      "trigrams": 0.631578947368421,
+      "d_tri_minus_pos": 0.04066985645933008,
+      "winner": "trigrams"
+    },
+    {
+      "clause": "Change Of Control",
+      "HR": "*",
+      "positional": 0.6129032258064516,
+      "trigrams": 0.6129032258064516,
+      "d_tri_minus_pos": 0.0,
+      "winner": "tie"
+    },
+    {
+      "clause": "Anti-Assignment",
+      "HR": "",
+      "positional": 0.922077922077922,
+      "trigrams": 0.9135802469135802,
+      "d_tri_minus_pos": -0.008497675164341856,
+      "winner": "positional"
+    },
+    {
+      "clause": "Revenue/Profit Sharing",
+      "HR": "",
+      "positional": 0.7301587301587301,
+      "trigrams": 0.625,
+      "d_tri_minus_pos": -0.10515873015873012,
+      "winner": "positional"
+    },
+    {
+      "clause": "Minimum Commitment",
+      "HR": "",
+      "positional": 0.7333333333333333,
+      "trigrams": 0.7191011235955056,
+      "d_tri_minus_pos": -0.014232209737827684,
+      "winner": "positional"
+    },
+    {
+      "clause": "Volume Restriction",
+      "HR": "",
+      "positional": 0.5172413793103449,
+      "trigrams": 0.5185185185185185,
+      "d_tri_minus_pos": 0.0012771392081736277,
+      "winner": "trigrams"
+    },
+    {
+      "clause": "IP Ownership Assignment",
+      "HR": "*",
+      "positional": 0.7659574468085106,
+      "trigrams": 0.6666666666666666,
+      "d_tri_minus_pos": -0.099290780141844,
+      "winner": "positional"
+    },
+    {
+      "clause": "License Grant",
+      "HR": "",
+      "positional": 0.9108910891089109,
+      "trigrams": 0.9345794392523364,
+      "d_tri_minus_pos": 0.02368835014342552,
+      "winner": "trigrams"
+    },
+    {
+      "clause": "Non-Transferable License",
+      "HR": "",
+      "positional": 0.7058823529411765,
+      "trigrams": 0.6222222222222222,
+      "d_tri_minus_pos": -0.08366013071895428,
+      "winner": "positional"
+    },
+    {
+      "clause": "Unlimited/All-You-Can-Eat-License",
+      "HR": "",
+      "positional": 0.0,
+      "trigrams": 0.5714285714285714,
+      "d_tri_minus_pos": 0.5714285714285714,
+      "winner": "trigrams"
+    },
+    {
+      "clause": "Post-Termination Services",
+      "HR": "",
+      "positional": 0.6808510638297872,
+      "trigrams": 0.631578947368421,
+      "d_tri_minus_pos": -0.0492721164613662,
+      "winner": "positional"
+    },
+    {
+      "clause": "Audit Rights",
+      "HR": "",
+      "positional": 0.8979591836734694,
+      "trigrams": 0.9,
+      "d_tri_minus_pos": 0.0020408163265306367,
+      "winner": "trigrams"
+    },
+    {
+      "clause": "Uncapped Liability",
+      "HR": "*",
+      "positional": 0.48,
+      "trigrams": 0.5531914893617021,
+      "d_tri_minus_pos": 0.07319148936170217,
+      "winner": "trigrams"
+    },
+    {
+      "clause": "Cap On Liability",
+      "HR": "",
+      "positional": 0.9193548387096774,
+      "trigrams": 0.8976377952755905,
+      "d_tri_minus_pos": -0.02171704343408687,
+      "winner": "positional"
+    },
+    {
+      "clause": "Liquidated Damages",
+      "HR": "*",
+      "positional": 0.5185185185185185,
+      "trigrams": 0.45714285714285713,
+      "d_tri_minus_pos": -0.06137566137566136,
+      "winner": "positional"
+    },
+    {
+      "clause": "Warranty Duration",
+      "HR": "",
+      "positional": 0.75,
+      "trigrams": 0.56,
+      "d_tri_minus_pos": -0.18999999999999995,
+      "winner": "positional"
+    },
+    {
+      "clause": "Insurance",
+      "HR": "",
+      "positional": 0.90625,
+      "trigrams": 0.8888888888888888,
+      "d_tri_minus_pos": -0.01736111111111116,
+      "winner": "positional"
+    },
+    {
+      "clause": "Covenant Not To Sue",
+      "HR": "",
+      "positional": 0.7567567567567568,
+      "trigrams": 0.6829268292682927,
+      "d_tri_minus_pos": -0.07382992748846406,
+      "winner": "positional"
+    },
+    {
+      "clause": "Third Party Beneficiary",
+      "HR": "",
+      "positional": 0.23529411764705882,
+      "trigrams": 0.5555555555555556,
+      "d_tri_minus_pos": 0.32026143790849676,
+      "winner": "trigrams"
+    }
+  ]
+}
