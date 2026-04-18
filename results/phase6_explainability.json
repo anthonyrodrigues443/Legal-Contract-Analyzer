@@ -1,0 +1,440 @@
+{
+  "date": "2026-04-18",
+  "phase": 6,
+  "model": "50/50 LGBM+LR Blend",
+  "macro_f1": 0.7163,
+  "hr_f1": 0.5819,
+  "hr_features_lgbm": {
+    "Uncapped Liability": [
+      [
+        "consequential",
+        13.0
+      ],
+      [
+        "contractors",
+        8.0
+      ],
+      [
+        "does",
+        7.0
+      ],
+      [
+        "release",
+        6.0
+      ],
+      [
+        "party be",
+        6.0
+      ],
+      [
+        "under section",
+        5.0
+      ],
+      [
+        "audit",
+        5.0
+      ],
+      [
+        "and its",
+        5.0
+      ],
+      [
+        "and agreements",
+        4.0
+      ],
+      [
+        "as provided",
+        4.0
+      ]
+    ],
+    "Change Of Control": [
+      [
+        "change of",
+        14.0
+      ],
+      [
+        "agents",
+        7.0
+      ],
+      [
+        "of control",
+        7.0
+      ],
+      [
+        "granted",
+        5.0
+      ],
+      [
+        "ownership",
+        5.0
+      ],
+      [
+        "assets",
+        4.0
+      ],
+      [
+        "the sole",
+        4.0
+      ],
+      [
+        "merger",
+        4.0
+      ],
+      [
+        "particular",
+        4.0
+      ],
+      [
+        "voting",
+        4.0
+      ]
+    ],
+    "Non-Compete": [
+      [
+        "compete",
+        9.0
+      ],
+      [
+        "competing",
+        7.0
+      ],
+      [
+        "maintain the",
+        6.0
+      ],
+      [
+        "competition",
+        6.0
+      ],
+      [
+        "written consent",
+        5.0
+      ],
+      [
+        "cease",
+        5.0
+      ],
+      [
+        "rule",
+        5.0
+      ],
+      [
+        "competitor",
+        5.0
+      ],
+      [
+        "competitive",
+        4.0
+      ],
+      [
+        "any federal",
+        4.0
+      ]
+    ],
+    "Liquidated Damages": [
+      [
+        "liquidated damages",
+        17.0
+      ],
+      [
+        "to which",
+        7.0
+      ],
+      [
+        "implement",
+        7.0
+      ],
+      [
+        "required for",
+        5.0
+      ],
+      [
+        "names and",
+        5.0
+      ],
+      [
+        "to pay",
+        5.0
+      ],
+      [
+        "and until",
+        4.0
+      ],
+      [
+        "property and",
+        4.0
+      ],
+      [
+        "law and",
+        4.0
+      ],
+      [
+        "contractor",
+        4.0
+      ]
+    ]
+  },
+  "hr_features_lr_positive": {
+    "Uncapped Liability": [
+      [
+        "confidential treatment",
+        0.4565
+      ],
+      [
+        "receiving party",
+        0.4447
+      ],
+      [
+        "audit",
+        0.4202
+      ],
+      [
+        "treatment has",
+        0.4144
+      ],
+      [
+        "separately with",
+        0.4143
+      ],
+      [
+        "filed separately",
+        0.4127
+      ],
+      [
+        "the receiving",
+        0.3971
+      ],
+      [
+        "treatment",
+        0.392
+      ],
+      [
+        "been requested",
+        0.3884
+      ],
+      [
+        "separately",
+        0.3808
+      ]
+    ],
+    "Change Of Control": [
+      [
+        "of control",
+        0.5647
+      ],
+      [
+        "change of",
+        0.5558
+      ],
+      [
+        "licensor",
+        0.5025
+      ],
+      [
+        "of licensor",
+        0.4504
+      ],
+      [
+        "licensee shall",
+        0.3793
+      ],
+      [
+        "licensee",
+        0.3758
+      ],
+      [
+        "voting",
+        0.3635
+      ],
+      [
+        "by licensor",
+        0.3457
+      ],
+      [
+        "to licensor",
+        0.3409
+      ],
+      [
+        "merger",
+        0.3283
+      ]
+    ],
+    "Non-Compete": [
+      [
+        "the distributor",
+        0.5471
+      ],
+      [
+        "distributor",
+        0.4555
+      ],
+      [
+        "competitor",
+        0.4238
+      ],
+      [
+        "competing",
+        0.4128
+      ],
+      [
+        "compete",
+        0.4091
+      ],
+      [
+        "distributor shall",
+        0.4002
+      ],
+      [
+        "competition",
+        0.3726
+      ],
+      [
+        "products",
+        0.3601
+      ],
+      [
+        "promote",
+        0.353
+      ],
+      [
+        "distributor agrees",
+        0.3495
+      ]
+    ],
+    "Liquidated Damages": [
+      [
+        "liquidated damages",
+        0.8261
+      ],
+      [
+        "liquidated",
+        0.6885
+      ],
+      [
+        "implementation",
+        0.4048
+      ],
+      [
+        "fee",
+        0.3967
+      ],
+      [
+        "contractor",
+        0.3731
+      ],
+      [
+        "of default",
+        0.3656
+      ],
+      [
+        "consultancy",
+        0.3556
+      ],
+      [
+        "termination fee",
+        0.3516
+      ],
+      [
+        "sanofi",
+        0.3471
+      ],
+      [
+        "co ltd",
+        0.3393
+      ]
+    ]
+  },
+  "overlap_analysis": {
+    "Uncapped Liability": {
+      "lgbm_top20": 20,
+      "lr_top15": 15,
+      "shared": 1,
+      "overlap_ratio": 0.029,
+      "shared_features": [
+        "audit"
+      ]
+    },
+    "Change Of Control": {
+      "lgbm_top20": 20,
+      "lr_top15": 15,
+      "shared": 5,
+      "overlap_ratio": 0.167,
+      "shared_features": [
+        "change of",
+        "merger",
+        "of control",
+        "ownership",
+        "voting"
+      ]
+    },
+    "Non-Compete": {
+      "lgbm_top20": 20,
+      "lr_top15": 15,
+      "shared": 6,
+      "overlap_ratio": 0.207,
+      "shared_features": [
+        "compete",
+        "competing",
+        "competition",
+        "competitive",
+        "competitor",
+        "promote"
+      ]
+    },
+    "Liquidated Damages": {
+      "lgbm_top20": 20,
+      "lr_top15": 15,
+      "shared": 2,
+      "overlap_ratio": 0.061,
+      "shared_features": [
+        "contractor",
+        "liquidated damages"
+      ]
+    }
+  },
+  "position_analysis": {
+    "Uncapped Liability": {
+      "median_position_pct": 37.1,
+      "in_second_half": 39.4
+    },
+    "Change Of Control": {
+      "median_position_pct": 31.0,
+      "in_second_half": 25.9
+    },
+    "Non-Compete": {
+      "median_position_pct": 40.4,
+      "in_second_half": 35.7
+    },
+    "Liquidated Damages": {
+      "median_position_pct": 28.7,
+      "in_second_half": 33.3
+    }
+  },
+  "domain_validation": {
+    "Uncapped Liability": {
+      "matched_expected": [],
+      "coverage_pct": 0.0
+    },
+    "Change Of Control": {
+      "matched_expected": [
+        "merger",
+        "ownership"
+      ],
+      "coverage_pct": 33.3
+    },
+    "Non-Compete": {
+      "matched_expected": [
+        "compete",
+        "competitive",
+        "territory"
+      ],
+      "coverage_pct": 50.0
+    },
+    "Liquidated Damages": {
+      "matched_expected": [
+        "liquidated damages"
+      ],
+      "coverage_pct": 16.7
+    }
+  }
+}
