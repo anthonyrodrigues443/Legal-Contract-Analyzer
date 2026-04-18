@@ -20,10 +20,11 @@ Terms of Service agreements contain clauses that may be unfair to consumers unde
 
 ## Current Status
 
-- **Phase completed:** Phase 4 — Hyperparameter Tuning + Error Analysis (2026-04-16)
-- **Best model (overall):** LightGBM default + TF-IDF(20K) — Macro-F1: **0.6656** (CUAD) — **beats published RoBERTa-large**
-- **Best model (calibrated):** LR + Youden thresholds — Macro-F1: **0.6591**, all HIGH-RISK recall ≥ 0.80 with Legal-Review thresholds
-- **Gap to human performance:** -0.114 macro-F1 (human: ~0.780)
+- **Phase completed:** Phase 6 — Production Pipeline + Streamlit UI (2026-04-18)
+- **Best model (raw):** LightGBM default + TF-IDF(20K) — Macro-F1: **0.6656** (beats published RoBERTa-large, Phase 4)
+- **Best model (deployed):** LGBM+LR blend, CV-learned thresholds — Macro-F1: **0.598**, HR-F1: **0.524**, 443ms/contract CPU
+- **Honest correction:** P5 headline number 0.6907 was inflated by +0.0923 due to test-fit Youden thresholds; deployable number is **0.598**
+- **Gap to human performance:** -0.182 macro-F1 honest (human: ~0.780)
 
 ## Key Findings
 
@@ -31,24 +32,25 @@ Terms of Service agreements contain clauses that may be unfair to consumers unde
 2. **The bottleneck is document coverage, not model sophistication.** TF-IDF processes 100% of each contract; BERT truncates at 512 tokens. The published RoBERTa result (0.650) uses sliding windows — truncation explains the gap entirely.
 3. **Youden threshold calibration is the biggest tuning win (+0.037).** Per-clause threshold optimization beats any feature engineering across Phases 3–4. Calibration is computationally free — no retraining required.
 4. **Root cause of failures is data quantity, not text complexity.** Corr(training_size, F1) = 0.742. Clauses with fewer than ~27 training examples consistently fail (F1 < 0.40) — no hyperparameter tuning can fix data scarcity.
-5. **Domain features DESTROY LR (-0.098) but are neutral for XGBoost.** Feature heterogeneity (binary flags + dense TF-IDF) causes L2 regularization interference in linear models. Tree models handle mixed-scale features naturally via per-split selection.
+5. **Phase 5 headline macro-F1 of 0.6907 was inflated by 0.09 due to test-fit thresholds.** Fitting per-clause Youden thresholds on the held-out test set is a subtle data leak. The honest, deployable number with CV-learned thresholds is 0.598 — competitive with RoBERTa-large but not better than it.
 
 ## Models Compared
 
 | Model | Macro-F1 | HR-F1 | Notes |
 |-------|----------|-------|-------|
-| **LightGBM default (20K)** | **0.6656** | 0.499 | Beats RoBERTa-large |
-| LR + Youden thresholds | 0.6591 | 0.502 | Best calibrated |
+| **LightGBM default (20K)** | **0.6656** | 0.499 | Beats RoBERTa-large (raw, test-fit thresholds) |
+| LR + Youden thresholds | 0.6591 | 0.502 | Best calibrated (test-fit) |
 | LR + Legal-Review thresholds | 0.6574 | 0.484 | All HR recall ≥ 0.80 |
+| **Production v1.0 (LGBM+LR, CV-learned thr.)** | **0.598** | **0.524** | Honest deployable, 443ms CPU |
 | Word+Char LR C=2.0 (40K) | 0.6225 | 0.488 | Phase 4 base |
 | Word+Char LR C=1.0 (40K) | 0.6187 | 0.485 | Phase 3 champion |
 | TF-IDF(20K) + LogReg | 0.6146 | 0.517 | Phase 2 champion |
 | TF-IDF(20K) + XGBoost | 0.6052 | 0.576 | P2 HR champion |
-| *Published RoBERTa-large* | *~0.650* | — | Beaten by P4 LGBM |
+| *Published RoBERTa-large* | *~0.650* | — | Beaten by P4 LGBM (test-fit) |
 | *Human performance* | *~0.780* | — | Upper bound |
 | BERT-base fine-tuned | 0.350 | — | 512-token truncation |
 
-**Total experiments:** 38
+**Total experiments:** 42
 
 ## Iteration Summary
 
@@ -151,6 +153,32 @@ Terms of Service agreements contain clauses that may be unfair to consumers unde
 **Surprise:** Optuna tuning HURT LightGBM (-0.010 macro-F1, -0.035 HR-F1). The default configuration was already near-optimal — over-optimizing on a simplified 5K proxy objective injures the full 20K model. Also: 9/102 test contracts miss at least one HIGH-RISK clause (8.8% miss rate), flagging a production-critical failure mode.<br><br>
 **Research:** Ke et al. (2017, LightGBM, NeurIPS) — histogram gradient boosting 5-8× faster on sparse text than XGBoost, motivated switching from Phase 2's XGBoost; Youden (1950) — J-statistic threshold strategy directly defined Exp 4.3's calibration approach.<br><br>
 **Best Model So Far:** LightGBM default (20K) — Macro-F1: 0.6656 (beats RoBERTa-large)
+
+</td>
+</tr>
+</table>
+
+### Phase 6: Production Pipeline + Streamlit UI — 2026-04-18
+
+<table>
+<tr>
+<td valign="top" width="38%">
+
+**UI Build 1:** Deployed full production pipeline (LGBM+LR blend, CV-learned thresholds) as a Streamlit app. Core finding: Mark's P5 macro-F1 of 0.6907 was inflated by 0.09 F1 — per-clause Youden thresholds were optimized on the held-out test set. Honest CV-learned number is macro-F1=0.598 / HR-F1=0.524.<br><br>
+**Threshold Trade-off:** CV-learned vs fixed 0.5 shows near-identical macro-F1 (-0.0015) but a +17pp recall shift. 25/28 clauses have non-default thresholds (Non-Compete at 0.29 for aggressive recall, Minimum Commitment at 0.67 for conservative precision).
+
+</td>
+<td align="center" width="24%">
+
+<img src="results/phase6_evaluation.png" width="220">
+
+</td>
+<td valign="top" width="38%">
+
+**Combined Insight:** Aggregate macro-F1 is the wrong metric for legal AI — threshold learning looks neutral on F1 but shifts the operating point by +17pp recall. In due-diligence, a missed uncapped-liability clause costs millions while a false flag costs 20 seconds of reviewer time; the precision/recall trade is asymmetric in a way that F1 cannot capture.<br><br>
+**Surprise:** Single-contract latency is 443ms — 25× faster than Claude but 17× slower than the batch figure — because 28 separate `predict_proba` calls on sparse matrices carry high per-call overhead. A single multi-output LGBM booster would likely cut this under 100ms. Batch mode (12ms, 925× faster than Claude) is effectively free.<br><br>
+**Research:** Mitchell et al. (2018, FAT*) — Model Cards for Model Reporting shaped the honest disclosure of the threshold-leak correction (deployable 0.598 vs headline 0.691); Bender & Friedman (2018, Data Statements) — informed scope exclusions: non-English, consumer TOS, and OCR'd documents.<br><br>
+**Best Model So Far (production):** LGBM+LR blend, CV-learned thresholds — Macro-F1: 0.598, HR-F1: 0.524, 443ms/contract CPU, deploys offline
 
 </td>
 </tr>
