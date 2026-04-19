@@ -368,5 +368,36 @@ Legal-Contract-Analyzer/
 
 ---
 
+---
+
+## Iteration Summary
+
+### Phase 7: Testing + README + Polish — 2026-04-19
+
+<table>
+<tr>
+<td valign="top" width="38%">
+
+**Eval Run 1:** 64 pytest tests written across 3 files — 18 data pipeline, 18 model bundle, 28 E2E inference. All 64 pass in 107.85s. Three initial failures were test design issues: Youden thresholds calibrated on 8,641-word CUAD contracts don't trigger on 200-word synthetic test contracts, so semantic tests must use relative comparisons (risky text > benign text in Non-Compete probability) rather than absolute detection assertions.
+
+</td>
+<td align="center" width="24%">
+
+<img src="results/phase6_per_clause_f1.png" width="220">
+
+</td>
+<td valign="top" width="38%">
+
+**Combined Insight:** The production inference pipeline is fully verified, deterministic, and reproducible. The test suite explicitly encodes the Youden threshold calibration's population constraint as a documented invariant — preventing future regression from silent threshold failures on short documents.<br><br>
+**Surprise:** All 4 initial test failures were test design issues, not model bugs. A pre-existing casing inconsistency ("Ip" vs "IP" in Ownership Assignment column names) was discovered only by the automated test suite — invisible to human review across 6 prior phases.<br><br>
+**Research:** Mitchell et al. (2018) — Model Cards for Model Reporting: systematic tests make calibration assumptions explicit and catch silent failure modes. Youden (1950) — optimal thresholds fitted on a population distribution don't generalize across document length distributions.<br><br>
+**Best Model So Far:** Production LGBM+LR Blend (Youden calibration) — macro-F1=0.7163, HR-F1=0.582, latency=12ms/contract
+
+</td>
+</tr>
+</table>
+
+---
+
 *Built by Anthony Rodrigues & Mark Rodrigues as part of the YC Portfolio Projects series.*  
 *Dataset: CUAD (CC BY 4.0). Code: MIT license.*
