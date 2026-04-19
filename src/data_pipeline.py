@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
-from datasets import load_dataset
 
 
 # All 41 CUAD clause categories
@@ -85,7 +84,8 @@ MEDIUM_RISK_CLAUSES = [
 
 
 def load_cuad_dataset(cache_dir: str = "data/raw") -> dict:
-    """Load CUAD dataset from HuggingFace."""
+    """Load CUAD dataset from HuggingFace (lazy import of `datasets`)."""
+    from datasets import load_dataset  # lazy — tests don't need this
     print("Loading CUAD dataset from HuggingFace...")
     dataset = load_dataset("theatticusproject/cuad", trust_remote_code=True, cache_dir=cache_dir)
     print(f"Dataset loaded: {dataset}")
